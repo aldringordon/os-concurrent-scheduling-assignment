@@ -1,0 +1,8 @@
+/**
+ * Aldrin Gordon
+ * Student No: 18340587
+ * File:
+ * Purpose:
+ */
+
+Copy-Pasta for top of each new file as file signature.
