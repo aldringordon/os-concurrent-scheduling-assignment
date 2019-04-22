@@ -19,8 +19,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "job_queue.h"
 #include "task.h"
+#include "job_queue.h"
 
 void createJobQueue(JobQueue** queue)
 {
@@ -38,12 +38,12 @@ void createJobQueue(JobQueue** queue)
 void addJob(JobQueue** queue, Task* job)
 {
     JobQueueNode* newNode;
-    Task* newTask;
+    Task* newJob;
 
     newNode = (JobQueueNode*)malloc(sizeof(JobQueueNode));
-    newTask = (Task*)malloc(sizeof(Task));
-    *newTask = *task;
-    newNode->task = newTask;
+    newJob = (Task*)malloc(sizeof(Task));
+    *newJob = *job;
+    newNode->task = newJob;
     newNode->next = NULL;
 
     if((*queue)->size == 0)
@@ -66,7 +66,6 @@ void addJob(JobQueue** queue, Task* job)
  */
 void freeNode(JobQueueNode* node)
 {
-    free(node->task);
     free(node);
 }
 
@@ -81,11 +80,11 @@ Task* getJob(JobQueue** queue)
     JobQueueNode* curr;
     if((*queue)->size == 0)
     {
-        *job = NULL;
+        job = NULL;
     }
     else
     {
-        *job = (*queue)->head->task;
+        job = (*queue)->head->task;
 
         if((*queue)->size == 1)
         {
@@ -99,6 +98,7 @@ Task* getJob(JobQueue** queue)
             (*queue)->head = (*queue)->head->next; /* point head to head.next */
             freeNode(curr); /* free curr */
         }
+        (*queue)->size--;
     }
     return job;
 }
