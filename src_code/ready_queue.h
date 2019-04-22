@@ -1,7 +1,7 @@
 /**
  * Aldrin Gordon
  * Student No: 18340587
- * File: queue.h
+ * File: ready_queue.h
  * Purpose: header file for ready_queue.c
  * contains queue related structs
  *

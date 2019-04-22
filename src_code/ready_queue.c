@@ -10,7 +10,7 @@
  * based off linkedList.c from COMP1000 Unix & C Programming
  * included in ~/reference_code
  *
- * modified to be a doubly linked list
+ * modified to be a double ended, doubly linked list
  *
  */
 #include <stdio.h>
