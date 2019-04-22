@@ -29,6 +29,6 @@ typedef struct
 
 #endif
 
-void createReadyQueue(ReadyQueue** queue, int size);
-int addTask(ReadyQueue** queue, Task* task);
 Task* getTask(ReadyQueue** queue);
+int addTask(ReadyQueue** queue, Task* task);
+void createReadyQueue(ReadyQueue** queue, int size);

@@ -16,9 +16,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "ready_queue.h"
-#include "task.h"
 #include "boolean.h"
+#include "task.h"
+#include "ready_queue.h"
 
 /**
  * free node memory
@@ -26,7 +26,6 @@
  */
 void freeNode(ReadyQueueNode* node)
 {
-    free(node->task);
     free(node);
 }
 
@@ -64,25 +63,26 @@ int addTask(ReadyQueue** queue, Task* task)
 
         newNode = (ReadyQueueNode*)malloc(sizeof(ReadyQueueNode));
         newTask = (Task*)malloc(sizeof(Task));
+
         *newTask = *task;
-        newNode->task = newTask;
+        newNode->task = newTask;;
 
     /* if the queue is empty */
         if((*queue)->size == 0)
         {
             (*queue)->head = newNode; /* point head to first new node, only updates when a node is removed from the queue */
+            (*queue)->tail = newNode;
             newNode->prev = NULL;
         }
         else /* otherwise */
         {
-            newNode->prev =  (*queue)->tail;
+            newNode->prev = (*queue)->tail; /* point newNode.prev to tail */
+            (*queue)->tail->next = newNode; /* point tail.next to newNode */
+            (*queue)->tail = newNode; /* point tail to newNode */
         }
         newNode->next = NULL; /* default when adding to end */
 
-        (*queue)->tail->next = newNode; /* point old tail to new node */
-        (*queue)->tail = newNode; /* point tail to new node */
         (*queue)->size++;
-
         return TRUE;
     }
     else
@@ -100,7 +100,9 @@ Task* getTask(ReadyQueue** queue)
     Task* task;
     if((*queue)->size > 0)
     {
-        *task = (*queue)->head->task; /* return first task */
+        task = (*queue)->head->task; /* return first task */
+
+        printf("getTask() called: #: %d BURST: %d\n", task->n, task->burst);
 
         if((*queue)->size == 1)
         {
@@ -119,7 +121,7 @@ Task* getTask(ReadyQueue** queue)
     }
     else
     {
-        *task = NULL;
+        task = NULL;
     }
     return task;
 }
