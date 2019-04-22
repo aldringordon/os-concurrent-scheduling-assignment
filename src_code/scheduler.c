@@ -16,9 +16,9 @@
  * References have been annotated at each line with an
  * index to the specification at the end of the program.
  */
- #include <std.io>
- #include <stdlib.h>
-
+#include <std.io>
+#include <stdlib.h>
+#include <time.h> /* See Reference #2 */
 
 
 int main(int argc, char* argv[])
@@ -43,5 +43,6 @@ int main(int argc, char* argv[])
  *      EXIT_FAILURE for the conventional status value for success and failure,
  *      respectively. They are declared in the file stdlib.h.""
  *
- *
+ * #2: https://www.tutorialspoint.com/c_standard_library/time_h.htm
+ *      For time and date related methods.
  */
