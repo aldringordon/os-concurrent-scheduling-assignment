@@ -21,6 +21,16 @@
 #include "boolean.h"
 
 /**
+ * free node memory
+ * @param node node to be deleted
+ */
+void freeNode(ReadyQueueNode* node)
+{
+    free(node->task);
+    free(node);
+}
+
+/**
  * Create empty ready_queue with defined capacity
  * @param size = capacity of ready_queue tasks
  */
@@ -49,16 +59,16 @@ int addTask(ReadyQueue** queue, Task* task)
     /* if number of tasks < capacity */
     if((*queue)->size < (*queue)->max_size)
     {
-        ReadyQueueTask* newNode;
+        ReadyQueueNode* newNode;
         Task* newTask;
 
-        newNode = (ReadyQueueTask*)malloc(sizeof(ReadyQueueTask));
+        newNode = (ReadyQueueNode*)malloc(sizeof(ReadyQueueNode));
         newTask = (Task*)malloc(sizeof(Task));
         *newTask = *task;
         newNode->task = newTask;
 
     /* if the queue is empty */
-        if((*queue)->head == NULL && (*queue)->tail == NULL)
+        if((*queue)->size == 0)
         {
             (*queue)->head = newNode; /* point head to first new node, only updates when a node is removed from the queue */
             newNode->prev = NULL;
@@ -79,4 +89,37 @@ int addTask(ReadyQueue** queue, Task* task)
     {
         return FALSE;
     }
+}
+
+/**
+ * returns and remove first task in queue (FIFO)
+ * @param  task empty task struct to return fields to
+ */
+Task* getTask(ReadyQueue** queue)
+{
+    Task* task;
+    if((*queue)->size > 0)
+    {
+        *task = (*queue)->head->task; /* return first task */
+
+        if((*queue)->size == 1)
+        {
+            freeNode((*queue)->head);
+            (*queue)->head = NULL;
+            (*queue)->tail = NULL;
+        }
+        else
+        {
+            (*queue)->head = (*queue)->head->next; /* point head to head.next */
+            freeNode((*queue)->head->prev); /* free original head node (head.prev) */
+            (*queue)->head->prev = NULL; /* set new head.prev = null */
+        }
+
+        (*queue)->size--;
+    }
+    else
+    {
+        *task = NULL;
+    }
+    return task;
 }
