@@ -16,7 +16,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "queue.h"
+#include "ready_queue.h"
 #include "task.h"
 #include "boolean.h"
 

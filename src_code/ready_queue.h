@@ -9,8 +9,8 @@
  * included in ~/reference_code
  *
  */
-#ifndef QUEUE_H
-#define QUEUE_H
+#ifndef READY_QUEUE_H
+#define READY_QUEUE_H
 
 typedef struct Node
 {
