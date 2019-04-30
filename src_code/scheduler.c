@@ -19,7 +19,10 @@
 #include <std.io>
 #include <stdlib.h>
 #include <time.h> /* See Reference #2 */
+#include <unistd.h>
+#include <pthread.h>
 
+ReadyQueue* ready_queue;
 
 int main(int argc, char* argv[])
 {
@@ -30,7 +33,16 @@ int main(int argc, char* argv[])
     }
     else
     {
+        int i;
+        pthread_t task, cpu1, cpu2, cpu3;
 
+        /* create Ready-Queue */
+        createReadyQueue(&ready_queue, argv[2]); /* argv[2] = m (capacity) */
+
+        pthread_create(&task, ~ , ~ , ~ );
+        pthread_create(&cpu1, ~ , ~ , ~ );
+        pthread_create(&cpu2, ~ , ~ , ~ );
+        pthread_create(&cpu3, ~ , ~ , ~ );
     }
     return EXIT_SUCCESS; /* See Reference #1 */
 }
