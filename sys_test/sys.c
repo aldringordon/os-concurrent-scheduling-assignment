@@ -12,16 +12,25 @@ void logThing(int cpu, int burst)
 	time(&rawtime);
 	timeinfo = localtime(&rawtime);
 
-	printf("Arrival time: %d:%d:%d", timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec);
+	printf("Arrival time: %d:%d:%d\n", timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec);
 
 	char command[128];
-	snprintf(command, sizeof(command), "echo \'%d: %d\nArrival time: %d:%d:%d\' >> simulation_log", cpu, burst, timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec);
+	snprintf(command, sizeof(command), "echo \'CPU#%d: burst_time: %d\nArrival time: %d:%d:%d\' >> simulation_log", cpu, burst, timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec);
 
 	system(command);
 }
 
 int main()
 {
+	system("echo \'simulation_log\' >> simulation_log");
+
 	logThing(1, 21);
+	
+//	fork();
+
+//	sleep(2);
+	logThing(2, 43);
+	logThing(3, 52);
+
 	return 0;
 }

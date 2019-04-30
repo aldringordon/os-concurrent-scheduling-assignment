@@ -1,2 +1,7 @@
-1: 21
-Arrival time: 20:6:38
+simulation_log
+CPU#1: burst_time: 21
+Arrival time: 20:43:46
+CPU#2: burst_time: 43
+Arrival time: 20:43:46
+CPU#3: burst_time: 52
+Arrival time: 20:43:46
