@@ -40,6 +40,7 @@ void createReadyQueue(ReadyQueue** queue, int size)
     (*queue)->tail = NULL;
     (*queue)->max_size = size;
     (*queue)->size = 0;
+    (*queue)->jobs_left = 1;
 }
 
 /**
@@ -89,6 +90,11 @@ int addTask(ReadyQueue** queue, Task* task)
     {
         return FALSE;
     }
+}
+
+void signalEmptyJobPool(ReadyQueue** queue)
+{
+    (*queue)->jobs_left = 0;
 }
 
 /**

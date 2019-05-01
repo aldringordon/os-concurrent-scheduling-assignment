@@ -23,6 +23,7 @@ typedef struct
 {
     int max_size;
     int size;
+    int jobs_left; /* 0 if no more jobs in Job-Queue, 1 otherwise */
     ReadyQueueNode* head;
     ReadyQueueNode* tail;
 } ReadyQueue;
@@ -32,3 +33,4 @@ typedef struct
 void createReadyQueue(ReadyQueue** queue, int size);
 int addTask(ReadyQueue** queue, Task* task);
 Task* getTask(ReadyQueue** queue);
+void signalEmptyJobPool(ReadyQueue** queue);
