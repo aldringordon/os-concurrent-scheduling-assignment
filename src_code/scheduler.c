@@ -27,12 +27,13 @@
 #include "ready_queue.h"
 #include "job_queue.h"
 
+/* shared data between threads */
 int num_tasks, total_waiting_time, total_turnaround_time;
-ReadyQueue* ready_queue;
-
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t full = PTHREAD_COND_INITIALIZER;
 pthread_cond_t empty = PTHREAD_COND_INITIALIZER;
+
+ReadyQueue* ready_queue;
 
 /**
  * places files from the Job-Queue into the Ready-Queue
@@ -40,18 +41,28 @@ pthread_cond_t empty = PTHREAD_COND_INITIALIZER;
  */
 void task(JobQueue** job_queue)
 {
+    printf("call to task()\n");
     Task* task;
     do
     {
-        if((*job_queue)->size > 1)
-        {
-            task = getJob(job_queue);
-            addTask(&ready_queue, task);
-        }
+        printf("\ttask() #1: job_queue size: %d\n",(*job_queue)->size);
+        task = getJob(job_queue);
+        addTask(&ready_queue, task);
         /* OUTPUT TO SIMLOG */
+
+        printf("\ttask() #2: job_queue size: %d\n",(*job_queue)->size);
+
+        printf("\t\ttask() mutex = %d\n", mutex);
+        printf("\t\ttask() full = %d\n", full);
+        printf("\t\ttask() empty = %d\n", empty);
 
         pthread_cond_wait(&empty, &mutex);
         pthread_mutex_lock(&mutex);
+
+        printf("WAIT & LOCK CALLED\n");
+        printf("\t\ttask() mutex = %d\n", mutex);
+        printf("\t\ttask() full = %d\n", full);
+        printf("\t\ttask() empty = %d\n", empty);
 
         if((*job_queue)->size > 1)
         {
@@ -78,11 +89,17 @@ void task(JobQueue** job_queue)
  * its "entire cpu burst" sleep(burst/10)
  * @param ready_queue [description]
  */
-void cpu()
+void cpu(void* args)
 {
+    printf("call to CPU()\n");
     Task *task;
     do
     {
+
+        printf("\tcpu() mutex = %d\n", mutex);
+        printf("\tcpu() full = %d\n", full);
+        printf("\tcpu() empty = %d\n", empty);
+
         pthread_cond_wait(&full, &mutex);
         pthread_mutex_lock(&mutex);
 
@@ -94,7 +111,7 @@ void cpu()
 
         sleep((task->burst)/25);
         /* OUTPUT COMPLETITION_TIME TO SIMLOG */
-        free(task);
+        /* free(task); */
 
     }while(ready_queue->jobs_left != 0);
 }
@@ -102,11 +119,11 @@ void cpu()
 int main(int argc, char* argv[])
 {
     JobQueue* job_queue;
-
-    pthread_t task, cpu1, cpu2, cpu3;
-
+    pthread_t taskT, cpu1, cpu2, cpu3;
     int m;
+    char* filename;
 
+    /* initialize shared data */
     num_tasks = 0;
     total_waiting_time = 0;
     total_turnaround_time = 0;
@@ -118,28 +135,44 @@ int main(int argc, char* argv[])
     }
     else
     {
+        m = atoi(argv[2]);
+        filename = argv[1];
+
+        printf("Ready-Queue Size: %d\n", m);
+        printf("task_file filename: %s\n", filename);
+
+        printf("generating task file . . .\n");
+        system("python task_file_generator.py");
+        printf("\ttask_file successfully generated\n");
+
         /* create Job-Queue*/
+        printf("Initializing Job-Queue\n");
         createJobQueue(&job_queue);
+        printf("job_queue size BEFORE: %d\n", job_queue->size);
+        readJobs(&job_queue);
+        printf("job_queue size AFTER: %d\n", job_queue->size);
 
         /* create Ready-Queue */
-        m = argv[2] - '0';
+        printf("Initializing Ready-Queue\n");
         createReadyQueue(&ready_queue, (int)argv[2]); /* argv[2] = m (capacity) */
 
         /* create 4 threads: 1 for task, 3 for cpus */
-        pthread_create(&task, NULL , task, &job_queue);
+        printf("Generating threads\n");
+        pthread_create(&taskT, NULL , task, &job_queue);
         pthread_create(&cpu1, NULL , cpu, NULL);
         pthread_create(&cpu2, NULL , cpu, NULL);
         pthread_create(&cpu3, NULL , cpu, NULL);
 
         /* block until all thread complete Reference #4 */
-        pthread_join(task, NULL);
+        pthread_join(taskT, NULL);
         pthread_join(cpu1, NULL);
         pthread_join(cpu2, NULL);
         pthread_join(cpu3, NULL);
+        printf("Joined threads\n");
 
         /* cleanup */
-        free(job_queue);
-        free(ready_queue);
+        /* free(job_queue);
+        free(ready_queue); */
     }
     return EXIT_SUCCESS; /* See Reference #1 */
 }
