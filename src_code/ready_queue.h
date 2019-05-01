@@ -12,11 +12,11 @@
 #ifndef READY_QUEUE_H
 #define READY_QUEUE_H
 
-typedef struct Node
+typedef struct ReadyNode
 {
     void* task;
-    struct Node* next;
-    struct Node* prev;
+    struct ReadyNode* next;
+    struct ReadyNode* prev;
 } ReadyQueueNode;
 
 typedef struct

@@ -20,8 +20,8 @@
 #include <stdlib.h>
 
 #include "task.h"
-#include "job_queue.h"
 #include "boolean.h"
+#include "job_queue.h"
 
 #define TASK_FILE "task_file" /* constant, name of task file to read from */
 
@@ -67,7 +67,7 @@ void addJob(JobQueue** queue, Task* job)
  * frees the node memory
  * @param node
  */
-void freeNode(JobQueueNode* node)
+void freeJobNode(JobQueueNode* node)
 {
     free(node);
 }
@@ -91,7 +91,7 @@ Task* getJob(JobQueue** queue)
 
         if((*queue)->size == 1)
         {
-            freeNode((*queue)->head);
+            freeJobNode((*queue)->head);
             (*queue)->head = NULL;
             (*queue)->tail = NULL;
         }
@@ -99,7 +99,7 @@ Task* getJob(JobQueue** queue)
         {
             curr = (*queue)->head; /* point curr to head */
             (*queue)->head = (*queue)->head->next; /* point head to head.next */
-            freeNode(curr); /* free curr */
+            freeJobNode(curr); /* free curr */
         }
         (*queue)->size--;
     }

@@ -16,12 +16,16 @@
  * References have been annotated at each line with an
  * index to the specification at the end of the program.
  */
-#include <std.io>
+#include <stdio.h>
 #include <stdlib.h>
 #include <time.h> /* Reference #2 */
 #include <unistd.h>
 #include <pthread.h>
 #include <semaphore.h> /* Reference #3 */
+
+#include "task.h"
+#include "ready_queue.h"
+#include "job_queue.h"
 
 int num_tasks, total_waiting_time, total_turnaround_time;
 ReadyQueue* ready_queue;
@@ -34,7 +38,7 @@ pthread_cond_t empty = PTHREAD_COND_INITIALIZER;
  * places files from the Job-Queue into the Ready-Queue
  * @param job_queue list of jobs to be added to ready_queue
  */
-void* task(JobQueue** job_queue)
+void task(JobQueue** job_queue)
 {
     Task* task;
     do
@@ -44,7 +48,7 @@ void* task(JobQueue** job_queue)
             task = getJob(job_queue);
             addTask(&ready_queue, task);
         }
-        // OUTPUT TO SIMLOG
+        /* OUTPUT TO SIMLOG */
 
         pthread_cond_wait(&empty, &mutex);
         pthread_mutex_lock(&mutex);
@@ -53,15 +57,15 @@ void* task(JobQueue** job_queue)
         {
             task = getJob(job_queue);
             addTask(&ready_queue, task);
-            // OUTPUT TO SIMLOG
+            /* OUTPUT TO SIMLOG */
         }
 
         task = getJob(job_queue);
         addTask(&ready_queue, task);
-        // OUTPUT TO SIMLOG
+        /* OUTPUT TO SIMLOG */
 
         pthread_mutex_unlock(&mutex);
-        pthread_cond_signal(&full, &mutex);
+        pthread_cond_signal(&full);
 
 
     }while((*job_queue)->size != 0);
@@ -74,7 +78,7 @@ void* task(JobQueue** job_queue)
  * its "entire cpu burst" sleep(burst/10)
  * @param ready_queue [description]
  */
-void* cpu()
+void cpu()
 {
     Task *task;
     do
@@ -82,22 +86,26 @@ void* cpu()
         pthread_cond_wait(&full, &mutex);
         pthread_mutex_lock(&mutex);
 
-        task1 = getTask(&ready_queue);
-        // OUTPUT SERVICE_TIME TO SIMLOG
+        task = getTask(&ready_queue);
+        /* OUTPUT SERVICE_TIME TO SIMLOG */
 
         pthread_mutex_lock(&mutex);
         pthread_cond_wait(&empty, &mutex);
 
-        sleep((task->)/25);
-        // OUTPUT COMPLETITION_TIME TO SIMLOG
+        sleep((task->burst)/25);
+        /* OUTPUT COMPLETITION_TIME TO SIMLOG */
         free(task);
 
-    }while(*ready_queue->jobs_left != 0);
+    }while(ready_queue->jobs_left != 0);
 }
 
 int main(int argc, char* argv[])
 {
     JobQueue* job_queue;
+
+    pthread_t task, cpu1, cpu2, cpu3;
+
+    int m;
 
     num_tasks = 0;
     total_waiting_time = 0;
@@ -114,7 +122,8 @@ int main(int argc, char* argv[])
         createJobQueue(&job_queue);
 
         /* create Ready-Queue */
-        createReadyQueue(&ready_queue, argv[2]); /* argv[2] = m (capacity) */
+        m = argv[2] - '0';
+        createReadyQueue(&ready_queue, (int)argv[2]); /* argv[2] = m (capacity) */
 
         /* create 4 threads: 1 for task, 3 for cpus */
         pthread_create(&task, NULL , task, &job_queue);

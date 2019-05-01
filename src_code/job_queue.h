@@ -8,10 +8,10 @@
 #ifndef JOB_QUEUE_H
 #define JOB_QUEUE_H
 
-typedef struct Node
+typedef struct JobNode
 {
     void* task;
-    struct Node* next;
+    struct JobNode* next;
 } JobQueueNode;
 
 typedef struct
