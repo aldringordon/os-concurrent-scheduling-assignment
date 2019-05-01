@@ -26,3 +26,4 @@ typedef struct
 void createJobQueue(JobQueue** queue);
 void addJob(JobQueue** queue, Task* job);
 Task* getJob(JobQueue** queue);
+void readJobs(JobQueue** queue);

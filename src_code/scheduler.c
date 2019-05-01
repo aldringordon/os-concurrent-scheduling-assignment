@@ -22,10 +22,42 @@
 #include <unistd.h>
 #include <pthread.h>
 
-ReadyQueue* ready_queue;
+int num_tasks, total_waiting_time, total_turnaround_time;
+
+/**
+ * places files from the Job-Queue into the Ready-Queue
+ * @param job_queue list of jobs to be added to ready_queue
+ */
+void* task(JobQueue** job_queue)
+{
+    do
+    {
+
+    }while(*job_queue->size != 0);
+}
+
+/**
+ * takes a task from ready_queue and executes for
+ * its "entire cpu burst" sleep(burst/10)
+ * @param ready_queue [description]
+ */
+void* cpu(ReadyQueue** ready_queue)
+{
+    do
+    {
+
+    }while(*ready_queue->size != 0);
+}
 
 int main(int argc, char* argv[])
 {
+    JobQueue* job_queue;
+    ReadyQueue* ready_queue;
+
+    num_tasks = 0;
+    total_waiting_time = 0;
+    total_turnaround_time = 0;
+
     if(argc < 3)
     {
         printf("Error - Usage: ./scheduler task_file m\n");
@@ -33,16 +65,20 @@ int main(int argc, char* argv[])
     }
     else
     {
-        int i;
-        pthread_t task, cpu1, cpu2, cpu3;
+        /* create Job-Queue*/
+        createJobQueue(&job_queue);
 
         /* create Ready-Queue */
         createReadyQueue(&ready_queue, argv[2]); /* argv[2] = m (capacity) */
 
+        /* create 4 threads: 1 for task, 3 for cpus */
         pthread_create(&task, ~ , ~ , ~ );
         pthread_create(&cpu1, ~ , ~ , ~ );
         pthread_create(&cpu2, ~ , ~ , ~ );
         pthread_create(&cpu3, ~ , ~ , ~ );
+
+
+
     }
     return EXIT_SUCCESS; /* See Reference #1 */
 }
