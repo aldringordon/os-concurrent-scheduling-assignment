@@ -120,7 +120,7 @@ void readJobs(JobQueue** queue)
     {
         while(done != TRUE)
         {
-            if(fscanf(file, "%d %d\n", task->n, task->burst) == NULL)
+            if(fscanf(file, "%d %d\n", &task->n, &task->burst) == EOF)
             {
                 done = TRUE;
             }
