@@ -23,8 +23,6 @@
 #include "boolean.h"
 #include "job_queue.h"
 
-#define TASK_FILE "task_file" /* constant, name of task file to read from */
-
 void createJobQueue(JobQueue** queue)
 {
     *queue = (JobQueue*)malloc(sizeof(JobQueue));
@@ -106,15 +104,15 @@ Task* getJob(JobQueue** queue)
     return job;
 }
 
-void readJobs(JobQueue** queue)
+void readJobs(JobQueue** queue, char* filename)
 {
-    FILE* file = fopen(TASK_FILE, "r");
+    FILE* file = fopen(filename, "r");
     int done = FALSE;
     Task* task = (Task*)malloc(sizeof(Task));
 
     if(file == NULL)
     {
-        printf("Error Opening \"task_file\"\n");
+        perror("Error opening task file: \"%s\"\n", filename);
     }
     else
     {

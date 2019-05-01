@@ -24,45 +24,29 @@
 #include <semaphore.h> /* Reference #3 */
 
 #include "task.h"
-#include "ready_queue.h"
 #include "job_queue.h"
+#include "ready_queue.h"
+#include "data.h"
 
 /* shared data between threads */
-int num_tasks, total_waiting_time, total_turnaround_time;
-pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-pthread_cond_t full = PTHREAD_COND_INITIALIZER;
-pthread_cond_t empty = PTHREAD_COND_INITIALIZER;
-
-ReadyQueue* ready_queue;
+DATA* data;
 
 /**
  * places files from the Job-Queue into the Ready-Queue
  * @param job_queue list of jobs to be added to ready_queue
  */
-void task(JobQueue** job_queue)
+void *task(void* data)
 {
-    printf("call to task()\n");
     Task* task;
+    printf("call to task()\n");
     do
     {
-        printf("\ttask() #1: job_queue size: %d\n",(*job_queue)->size);
         task = getJob(job_queue);
         addTask(&ready_queue, task);
         /* OUTPUT TO SIMLOG */
 
-        printf("\ttask() #2: job_queue size: %d\n",(*job_queue)->size);
-
-        printf("\t\ttask() mutex = %d\n", mutex);
-        printf("\t\ttask() full = %d\n", full);
-        printf("\t\ttask() empty = %d\n", empty);
-
         pthread_cond_wait(&empty, &mutex);
         pthread_mutex_lock(&mutex);
-
-        printf("WAIT & LOCK CALLED\n");
-        printf("\t\ttask() mutex = %d\n", mutex);
-        printf("\t\ttask() full = %d\n", full);
-        printf("\t\ttask() empty = %d\n", empty);
 
         if((*job_queue)->size > 1)
         {
@@ -81,6 +65,7 @@ void task(JobQueue** job_queue)
 
     }while((*job_queue)->size != 0);
 
+    pthread_exit(NULL);
     signalEmptyJobPool(&ready_queue);
 }
 
@@ -89,17 +74,12 @@ void task(JobQueue** job_queue)
  * its "entire cpu burst" sleep(burst/10)
  * @param ready_queue [description]
  */
-void cpu(void* args)
+void *cpu(void* data)
 {
-    printf("call to CPU()\n");
     Task *task;
+    printf("call to CPU()\n");
     do
     {
-
-        printf("\tcpu() mutex = %d\n", mutex);
-        printf("\tcpu() full = %d\n", full);
-        printf("\tcpu() empty = %d\n", empty);
-
         pthread_cond_wait(&full, &mutex);
         pthread_mutex_lock(&mutex);
 
@@ -114,6 +94,7 @@ void cpu(void* args)
         /* free(task); */
 
     }while(ready_queue->jobs_left != 0);
+    pthread_exit(NULL);
 }
 
 int main(int argc, char* argv[])
@@ -124,9 +105,10 @@ int main(int argc, char* argv[])
     char* filename;
 
     /* initialize shared data */
-    num_tasks = 0;
-    total_waiting_time = 0;
-    total_turnaround_time = 0;
+    data = (Data*)malloc(sizeof(Data));
+    data->num_tasks = 0;
+    data->totwal_waiting_time = 0;
+    data->total_turnaround_time = 0;
 
     if(argc < 3)
     {
@@ -141,20 +123,20 @@ int main(int argc, char* argv[])
         printf("Ready-Queue Size: %d\n", m);
         printf("task_file filename: %s\n", filename);
 
-        printf("generating task file . . .\n");
-        system("python task_file_generator.py");
-        printf("\ttask_file successfully generated\n");
+        /* create a simulation_log */
+        system("rm -rf simulation_log");
+        system("echo SIMULATION LOG >> simulation_log");
 
         /* create Job-Queue*/
         printf("Initializing Job-Queue\n");
         createJobQueue(&job_queue);
         printf("job_queue size BEFORE: %d\n", job_queue->size);
-        readJobs(&job_queue);
+        readJobs(&job_queue, filename);
         printf("job_queue size AFTER: %d\n", job_queue->size);
 
         /* create Ready-Queue */
         printf("Initializing Ready-Queue\n");
-        createReadyQueue(&ready_queue, (int)argv[2]); /* argv[2] = m (capacity) */
+        createReadyQueue(&ready_queue, m); /* argv[2] = m (capacity) */
 
         /* create 4 threads: 1 for task, 3 for cpus */
         printf("Generating threads\n");
@@ -174,6 +156,8 @@ int main(int argc, char* argv[])
         /* free(job_queue);
         free(ready_queue); */
     }
+
+    free(data);
     return EXIT_SUCCESS; /* See Reference #1 */
 }
 
