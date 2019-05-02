@@ -54,6 +54,7 @@ void* cpu(void* shared_data)
     do
     {
         printf("\tcpu() entry section reached\n");
+
         pthread_cond_wait(&empty, &mutex);
         pthread_mutex_lock(&mutex);
 
@@ -90,7 +91,7 @@ void* task(void* shared_data)
     printf("call to task()\n");
     do
     {
-        printf("\ttask() ENTRY section reached\n");
+        printf("\ttask() ENTRY section reached\nqueue size: %d\n", data->queue->size);
         task1 = getJob(&job_queue);
         if(task1 != NULL)
         {
@@ -226,10 +227,11 @@ int main(int argc, char* argv[])
         printf("Joined threads\n");
 
         /* cleanup */
-        /*
+        pthread_mutex_destroy(&mutex);
+        pthread_cond_destroy(&empty);
+        pthread_cond_destroy(&not_empty);
         free(job_queue);
         free(ready_queue);
-        */
     }
 
     return EXIT_SUCCESS; /* See Reference #1 */
