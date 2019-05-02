@@ -28,92 +28,138 @@
 #include "ready_queue.h"
 #include "data.h"
 
+#define NUM_THREADS 4 /* task, CPU-1, CPU-2, CPU-3 */
+
 /* shared data between threads */
-DATA* data;
+int num_tasks;
+int total_waiting_time;
+int total_turnaround_time;
+pthread_mutex_t mutex;
+pthread_cond_t empty;
+pthread_cond_t not_empty;
 
-/**
- * places files from the Job-Queue into the Ready-Queue
- * @param job_queue list of jobs to be added to ready_queue
- */
-void *task(void* data)
-{
-    Task* task;
-    printf("call to task()\n");
-    do
-    {
-        task = getJob(job_queue);
-        addTask(&ready_queue, task);
-        /* OUTPUT TO SIMLOG */
-
-        pthread_cond_wait(&empty, &mutex);
-        pthread_mutex_lock(&mutex);
-
-        if((*job_queue)->size > 1)
-        {
-            task = getJob(job_queue);
-            addTask(&ready_queue, task);
-            /* OUTPUT TO SIMLOG */
-        }
-
-        task = getJob(job_queue);
-        addTask(&ready_queue, task);
-        /* OUTPUT TO SIMLOG */
-
-        pthread_mutex_unlock(&mutex);
-        pthread_cond_signal(&full);
-
-
-    }while((*job_queue)->size != 0);
-
-    pthread_exit(NULL);
-    signalEmptyJobPool(&ready_queue);
-}
+/* job pool */
+JobQueue* job_queue;
 
 /**
  * takes a task from ready_queue and executes for
  * its "entire cpu burst" sleep(burst/10)
  * @param ready_queue [description]
  */
-void *cpu(void* data)
+void* cpu(void* shared_data)
 {
-    Task *task;
+    Task *task = NULL;
+    Data* data = (Data*)shared_data;
     printf("call to CPU()\n");
     do
     {
-        pthread_cond_wait(&full, &mutex);
-        pthread_mutex_lock(&mutex);
-
-        task = getTask(&ready_queue);
-        /* OUTPUT SERVICE_TIME TO SIMLOG */
-
-        pthread_mutex_lock(&mutex);
+        printf("\tcpu() entry section reached\n");
         pthread_cond_wait(&empty, &mutex);
+        pthread_mutex_lock(&mutex);
 
-        sleep((task->burst)/25);
-        /* OUTPUT COMPLETITION_TIME TO SIMLOG */
-        /* free(task); */
+        printf("\t\tcpu() CRITICAL section reached\n");
 
-    }while(ready_queue->jobs_left != 0);
+        task = getTask(&data->queue);
+        if(task != NULL)
+        {
+            /* OUTPUT SERVICE_TIME TO SIMLOG */
+        }
+
+        pthread_mutex_unlock(&mutex);
+        pthread_cond_signal(&not_empty);
+
+        if(task != NULL)
+        {
+            /* sleep(1); */
+            /* OUTPUT COMPLETITION_TIME TO SIMLOG */
+            /* free(task); */
+        }
+        printf("\t\t\tcpu() REMAINDER section reached\n");
+    }while(data->queue->jobs_left != 0);
+    pthread_exit(NULL);
+}
+
+/**
+ * places files from the Job-Queue into the Ready-Queue
+ * @param job_queue list of jobs to be added to ready_queue
+ */
+void* task(void* shared_data)
+{
+    Task *task1, *task2;
+    Data* data = (Data*)shared_data;
+    printf("call to task()\n");
+    do
+    {
+        printf("\ttask() ENTRY section reached\n");
+        task1 = getJob(&job_queue);
+        if(task1 != NULL)
+        {
+            /* OUTPUT TO SIMLOG */
+        }
+
+        task2 = getJob(&job_queue);
+        if(task2 != NULL)
+        {
+            /* OUTPUT TO SIMLOG */
+        }
+
+        pthread_cond_wait(&not_empty, &mutex);
+        pthread_mutex_lock(&mutex);
+
+        printf("\t\ttask() CRITICAL section reached\n");
+
+        if(task1 != NULL && (data->queue->size < data->queue->max_size))
+        {
+            addTask(&data->queue, task1);
+            /* OUTPUT TO SIMLOG */
+            task1 = NULL;
+        }
+        if(task2 != NULL && (data->queue->size < data->queue->max_size))
+        {
+            addTask(&data->queue, task2);
+            /* OUTPUT TO SIMLOG */
+            task2 = NULL;
+        }
+
+        pthread_mutex_unlock(&mutex);
+        pthread_cond_signal(&empty);
+
+        printf("\t\t\ttask() REMAINDER section reached\n");
+
+    }while(job_queue->size != 0);
+
     pthread_exit(NULL);
 }
 
 int main(int argc, char* argv[])
 {
-    JobQueue* job_queue;
-    pthread_t taskT, cpu1, cpu2, cpu3;
-    int m;
-    char* filename;
+    /* ./scheduler filename m */
+    char* filename; /* argv[1] */
+    int m; /* argv[2] */
+
+    int i, rc;
+
+    ReadyQueue* ready_queue;
+
+    pthread_t threads[NUM_THREADS];
+    Data thread_data[NUM_THREADS];
 
     /* initialize shared data */
-    data = (Data*)malloc(sizeof(Data));
-    data->num_tasks = 0;
-    data->totwal_waiting_time = 0;
-    data->total_turnaround_time = 0;
+    num_tasks = 0;
+    total_waiting_time = 0;
+    total_turnaround_time = 0;
+
+    /* initialize mutex lock */
+    pthread_mutex_init(&mutex, NULL); /* Reference #5 */
+
+    /* initialize condition variables */
+    pthread_cond_init(&empty, NULL);
+    pthread_cond_init(&not_empty, NULL);
 
     if(argc < 3)
     {
         printf("Error - Usage: ./scheduler task_file m\n");
-        return EXIT_FAILURE; /* See Reference #1 */
+        return EXIT_FAILURE; /* Reference #1 */
     }
     else
     {
@@ -130,34 +176,62 @@ int main(int argc, char* argv[])
         /* create Job-Queue*/
         printf("Initializing Job-Queue\n");
         createJobQueue(&job_queue);
-        printf("job_queue size BEFORE: %d\n", job_queue->size);
+        printf("job_queue size BEFORE readJobs(): %d\n", job_queue->size);
         readJobs(&job_queue, filename);
-        printf("job_queue size AFTER: %d\n", job_queue->size);
+        printf("job_queue size AFTER readJobs(): %d\n", job_queue->size);
 
         /* create Ready-Queue */
         printf("Initializing Ready-Queue\n");
-        createReadyQueue(&ready_queue, m); /* argv[2] = m (capacity) */
+        createReadyQueue(&ready_queue, m, job_queue->size);
+        printf("read_queue max_size: %d\n", ready_queue->max_size);
+        printf("read_queue size: %d\n", ready_queue->size);
+        printf("read_queue jobs_left: %d\n", ready_queue->jobs_left);
 
-        /* create 4 threads: 1 for task, 3 for cpus */
+        /* create 4 threads: 1 for task, 3 for cpus
+        i = 0 -> task
+        i = 1 -> CPU-1
+        i = 2 -> CPU-2
+        i = 3 -> CPU-3
+        */
         printf("Generating threads\n");
-        pthread_create(&taskT, NULL , task, &job_queue);
-        pthread_create(&cpu1, NULL , cpu, NULL);
-        pthread_create(&cpu2, NULL , cpu, NULL);
-        pthread_create(&cpu3, NULL , cpu, NULL);
+        for(i = 0; i < NUM_THREADS; i++) /* Reference #5 */
+        {
+            thread_data[i].thread_id = i;
+            thread_data[i].queue = ready_queue;
+            if(i == 0) /* task thread */
+            {
+                if((rc = pthread_create(&threads[i], NULL, task, &thread_data[i])))
+                {
+                    fprintf(stderr, "Error: pthread_create, rc: %d\n", rc);
+                    return EXIT_FAILURE;
+                }
+            }
+            else /* cpu threads */
+            {
+                if((rc = pthread_create(&threads[i], NULL, cpu, &thread_data[i])))
+                {
+                    fprintf(stderr, "Error: pthread_create, rc: %d\n", rc);
+                    return EXIT_FAILURE;
+                }
+            }
+        }
 
-        /* block until all thread complete Reference #4 */
-        pthread_join(taskT, NULL);
-        pthread_join(cpu1, NULL);
-        pthread_join(cpu2, NULL);
-        pthread_join(cpu3, NULL);
+        /* block until all thread complete
+        Reference #4
+        */
+        for(i = 0; i < NUM_THREADS; i++)
+        {
+            pthread_join(threads[i], NULL);
+        }
         printf("Joined threads\n");
 
         /* cleanup */
-        /* free(job_queue);
-        free(ready_queue); */
+        /*
+        free(job_queue);
+        free(ready_queue);
+        */
     }
 
-    free(data);
     return EXIT_SUCCESS; /* See Reference #1 */
 }
 
@@ -177,4 +251,7 @@ int main(int argc, char* argv[])
  *
  * #4: https://randu.org/tutorials/threads/
  *      Example program using pthread functions
+ *
+ * #5: https://randu.org/tutorials/threads/
+ *      Multithreaded Programming - pthread Mutexes
  */

@@ -112,7 +112,7 @@ void readJobs(JobQueue** queue, char* filename)
 
     if(file == NULL)
     {
-        perror("Error opening task file: \"%s\"\n", filename);
+        fprintf(stderr, "\nError opening task file: \"%s\"\n\ttry : $ python task_file_generator.py\n\n", filename);
     }
     else
     {

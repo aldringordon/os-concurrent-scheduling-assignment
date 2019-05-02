@@ -33,14 +33,14 @@ void freeNode(ReadyQueueNode* node)
  * Create empty ready_queue with defined capacity
  * @param size = capacity of ready_queue tasks
  */
-void createReadyQueue(ReadyQueue** queue, int size)
+void createReadyQueue(ReadyQueue** queue, int size, int jobs)
 {
     *queue = (ReadyQueue*)malloc(sizeof(ReadyQueue));
     (*queue)->head = NULL;
     (*queue)->tail = NULL;
     (*queue)->max_size = size;
     (*queue)->size = 0;
-    (*queue)->jobs_left = 1;
+    (*queue)->jobs_left = jobs;
 }
 
 /**
@@ -92,11 +92,6 @@ int addTask(ReadyQueue** queue, Task* task)
     }
 }
 
-void signalEmptyJobPool(ReadyQueue** queue)
-{
-    (*queue)->jobs_left = 0;
-}
-
 /**
  * returns and remove first task in queue (FIFO)
  * @param  task empty task struct to return fields to
@@ -124,6 +119,7 @@ Task* getTask(ReadyQueue** queue)
         }
 
         (*queue)->size--;
+        (*queue)->jobs_left--;
     }
     else
     {

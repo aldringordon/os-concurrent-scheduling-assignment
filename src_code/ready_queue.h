@@ -30,7 +30,7 @@ typedef struct
 
 #endif
 
-void createReadyQueue(ReadyQueue** queue, int size);
+void createReadyQueue(ReadyQueue** queue, int size, int jobs);
 int addTask(ReadyQueue** queue, Task* task);
 Task* getTask(ReadyQueue** queue);
 void signalEmptyJobPool(ReadyQueue** queue);
