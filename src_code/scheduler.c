@@ -55,7 +55,7 @@ void* cpu(void* shared_data)
     {
         printf("\tcpu() entry section reached\n");
 
-        pthread_cond_wait(&empty, &mutex);
+        pthread_cond_wait(&not_empty, &mutex);
         pthread_mutex_lock(&mutex);
 
         printf("\t\tcpu() CRITICAL section reached\n");
@@ -67,7 +67,7 @@ void* cpu(void* shared_data)
         }
 
         pthread_mutex_unlock(&mutex);
-        pthread_cond_signal(&not_empty);
+        pthread_cond_signal(&empty);
 
         if(task != NULL)
         {
@@ -104,7 +104,7 @@ void* task(void* shared_data)
             /* OUTPUT TO SIMLOG */
         }
 
-        pthread_cond_wait(&not_empty, &mutex);
+        pthread_cond_wait(&empty, &mutex);
         pthread_mutex_lock(&mutex);
 
         printf("\t\ttask() CRITICAL section reached\n");
@@ -123,7 +123,7 @@ void* task(void* shared_data)
         }
 
         pthread_mutex_unlock(&mutex);
-        pthread_cond_signal(&empty);
+        pthread_cond_signal(&not_empty);
 
         printf("\t\t\ttask() REMAINDER section reached\n");
 
