@@ -27,6 +27,7 @@
 #include "job_queue.h"
 #include "ready_queue.h"
 #include "data.h"
+#include "boolean.h"
 
 #define NUM_THREADS 4 /* task, CPU-1, CPU-2, CPU-3 */
 
@@ -34,9 +35,12 @@
 int num_tasks;
 int total_waiting_time;
 int total_turnaround_time;
-pthread_mutex_t mutex;
-pthread_cond_t empty;
-pthread_cond_t not_empty;
+
+pthread_mutex_t queue_lock;
+pthread_mutex_t cpu_lock;
+
+pthread_cond_t no_tasks;
+pthread_cond_t tasks;
 
 /* job pool */
 JobQueue* job_queue;
@@ -50,33 +54,26 @@ void* cpu(void* shared_data)
 {
     Task *task = NULL;
     Data* data = (Data*)shared_data;
-    printf("call to CPU()\n");
+    ReadyQueue** ready_queue = data->queue;
+    printf("call to CPU(%d)\n", data->thread_id);
+
     do
     {
-        printf("\tcpu() entry section reached\n");
+        while(pthread_cond_wait(&tasks, &queue_lock)) {/*no-op*/}
 
-        pthread_cond_wait(&not_empty, &mutex);
-        pthread_mutex_lock(&mutex);
+        pthread_mutex_lock(&queue_lock); /* arrival of tasks */
 
-        printf("\t\tcpu() CRITICAL section reached\n");
+        task = getTask(ready_queue);
 
-        task = getTask(&data->queue);
-        if(task != NULL)
+        if(task == NULL)
         {
-            /* OUTPUT SERVICE_TIME TO SIMLOG */
+            pthread_cond_signal(&no_tasks);
         }
+        pthread_mutex_unlock(&queue_lock);
 
-        pthread_mutex_unlock(&mutex);
-        pthread_cond_signal(&empty);
 
-        if(task != NULL)
-        {
-            /* sleep(1); */
-            /* OUTPUT COMPLETITION_TIME TO SIMLOG */
-            /* free(task); */
-        }
-        printf("\t\t\tcpu() REMAINDER section reached\n");
-    }while(data->queue->jobs_left != 0);
+    }while(TRUE);
+
     pthread_exit(NULL);
 }
 
@@ -88,46 +85,46 @@ void* task(void* shared_data)
 {
     Task *task1, *task2;
     Data* data = (Data*)shared_data;
-    printf("call to task()\n");
+    ReadyQueue** ready_queue = data->queue;
+    printf("call to task(%d)\n", data->thread_id);
+
+    printf("TASK() ready_queue jobs_left: %d\n", (*ready_queue)->jobs_left);
     do
     {
-        printf("\ttask() ENTRY section reached\nqueue size: %d\n", data->queue->size);
         task1 = getJob(&job_queue);
         if(task1 != NULL)
         {
-            /* OUTPUT TO SIMLOG */
+            /* sim_log */
         }
 
         task2 = getJob(&job_queue);
         if(task2 != NULL)
         {
-            /* OUTPUT TO SIMLOG */
+            /* sim_log */
         }
 
-        pthread_cond_wait(&empty, &mutex);
-        pthread_mutex_lock(&mutex);
-
-        printf("\t\ttask() CRITICAL section reached\n");
-
-        if(task1 != NULL && (data->queue->size < data->queue->max_size))
+        if(task1 == NULL && task2 == NULL)
         {
-            addTask(&data->queue, task1);
-            /* OUTPUT TO SIMLOG */
-            task1 = NULL;
+            break;
         }
-        if(task2 != NULL && (data->queue->size < data->queue->max_size))
+
+        pthread_mutex_lock(&queue_lock);
+        if(addTask(ready_queue, task1) == TRUE)
         {
-            addTask(&data->queue, task2);
-            /* OUTPUT TO SIMLOG */
-            task2 = NULL;
+            /* sim_log */
         }
 
-        pthread_mutex_unlock(&mutex);
-        pthread_cond_signal(&not_empty);
+        if(addTask(ready_queue, task2) == TRUE)
+        {
+            /* sim_log */
+        }
+        pthread_mutex_unlock(&queue_lock);
 
-        printf("\t\t\ttask() REMAINDER section reached\n");
+        pthread_cond_signal(&tasks);
 
-    }while(job_queue->size != 0);
+        while(pthread_cond_wait(&no_tasks)) {/*no-op*/}
+
+    }while(TRUE);
 
     pthread_exit(NULL);
 }
@@ -151,11 +148,12 @@ int main(int argc, char* argv[])
     total_turnaround_time = 0;
 
     /* initialize mutex lock */
-    pthread_mutex_init(&mutex, NULL); /* Reference #5 */
+    pthread_mutex_init(&queue_lock, NULL); /* Reference #5 */
+    pthread_mutex_init(&cpu_lock, NULL);
 
     /* initialize condition variables */
-    pthread_cond_init(&empty, NULL);
-    pthread_cond_init(&not_empty, NULL);
+    pthread_cond_init(&tasks, NULL);
+    pthread_cond_init(&no_tasks, NULL);
 
     if(argc < 3)
     {
@@ -177,28 +175,18 @@ int main(int argc, char* argv[])
         /* create Job-Queue*/
         printf("Initializing Job-Queue\n");
         createJobQueue(&job_queue);
-        printf("job_queue size BEFORE readJobs(): %d\n", job_queue->size);
         readJobs(&job_queue, filename);
-        printf("job_queue size AFTER readJobs(): %d\n", job_queue->size);
 
         /* create Ready-Queue */
         printf("Initializing Ready-Queue\n");
         createReadyQueue(&ready_queue, m, job_queue->size);
-        printf("read_queue max_size: %d\n", ready_queue->max_size);
-        printf("read_queue size: %d\n", ready_queue->size);
-        printf("read_queue jobs_left: %d\n", ready_queue->jobs_left);
 
-        /* create 4 threads: 1 for task, 3 for cpus
-        i = 0 -> task
-        i = 1 -> CPU-1
-        i = 2 -> CPU-2
-        i = 3 -> CPU-3
-        */
+        /* create 4 threads: 1 for task, 3 for cpus */
         printf("Generating threads\n");
         for(i = 0; i < NUM_THREADS; i++) /* Reference #5 */
         {
             thread_data[i].thread_id = i;
-            thread_data[i].queue = ready_queue;
+            thread_data[i].queue = &ready_queue;
             if(i == 0) /* task thread */
             {
                 if((rc = pthread_create(&threads[i], NULL, task, &thread_data[i])))
@@ -227,9 +215,10 @@ int main(int argc, char* argv[])
         printf("Joined threads\n");
 
         /* cleanup */
-        pthread_mutex_destroy(&mutex);
-        pthread_cond_destroy(&empty);
-        pthread_cond_destroy(&not_empty);
+        pthread_mutex_destroy(&queue_lock);
+        pthread_mutex_destroy(&cpu_lock);
+        pthread_cond_destroy(&tasks);
+        pthread_cond_destroy(&no_tasks);
         free(job_queue);
         free(ready_queue);
     }

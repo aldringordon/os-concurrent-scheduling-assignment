@@ -11,7 +11,7 @@
 typedef struct
 {
     int thread_id;
-    ReadyQueue* queue;
+    ReadyQueue** queue;
 } Data;
 
 #endif

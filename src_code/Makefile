@@ -6,7 +6,7 @@ CFLAGS = -Wall -pedantic -ansi
 CC = gcc
 CLEAN = rm -rf
 SIM_LOG = simulation_log
-SCHEDULER = scheduler.c ready_queue.h job_queue.h task.h
+SCHEDULER = scheduler.c ready_queue.h job_queue.h task.h boolean.h
 READY_QUEUE = ready_queue.c ready_queue.h task.h boolean.h
 JOB_QUEUE = job_queue.c job_queue.h task.h boolean.h
 
