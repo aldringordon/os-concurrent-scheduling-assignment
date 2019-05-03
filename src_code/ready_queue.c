@@ -103,7 +103,7 @@ Task* getTask(ReadyQueue** queue)
     {
         task = (*queue)->head->task; /* return first task */
 
-        printf("getTask() called: #: %d BURST: %d\n", task->n, task->burst);
+        /* printf("getTask() called: #: %d BURST: %d\n", task->n, task->burst); */
 
         if((*queue)->size == 1)
         {

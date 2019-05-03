@@ -67,10 +67,8 @@ void* cpu(void* shared_data)
             printf("CPU(%d) EXIT SPINLOCK ENTRY SECTION\n", cpu_id);
 
             pthread_mutex_lock(&queue_lock); /* arrival of tasks */
-
             printf("\tCPU(%d) CRITICAL SECTION\n", cpu_id);
             task = getTask(ready_queue);
-
             pthread_mutex_unlock(&queue_lock);
 
             printf("\t\tCPU(%d) REMAINDER SECTION\n", cpu_id);
@@ -85,12 +83,11 @@ void* cpu(void* shared_data)
                 /* sleep */
                 /* sim-log */
                 pthread_mutex_lock(&cpu_lock);
-
                 /* total_turnaround_time += service time + cpu_burst */
-
                 pthread_mutex_unlock(&cpu_lock);
             }
         }while(task != NULL);
+        printf("\t\t\t\tCPU(%d) EXIT TASK LOOP\n", cpu_id);
 
     }while(TRUE);
 
@@ -117,16 +114,15 @@ void* task(void* shared_data)
         do
         {
             printf("TASK() ENTRY SECTION\n");
+
             task1 = getJob(&job_queue);
             task2 = getJob(&job_queue);
 
             if(task1 == NULL && task2 == NULL)
             {
+                printf("\t\t\t\t\tTASK() EXIT PROCESS\n");
                 break;
             }
-
-
-
 
             pthread_mutex_lock(&queue_lock);
 
@@ -169,7 +165,7 @@ void* task(void* shared_data)
         /* spinlock */
         printf("\t\t\t\tTASK() ENTER SPINLOCK\n");
         while(pthread_cond_wait(&no_tasks, &queue_lock)) {/*no-op*/}
-        printf("\t\t\t\tTASK() EXIT SPINLOCK\n");
+        printf("\t\t\t\t\tTASK() EXIT SPINLOCK\n");
 
     }while(TRUE);
 
