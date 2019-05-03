@@ -15,6 +15,9 @@
  *
  * References have been annotated at each line with an
  * index to the specification at the end of the program.
+ *
+ *
+ * NOTE: valgrind --tool=helgrind ./scheduler task_file 10
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -80,7 +83,7 @@ void* cpu(void* shared_data)
             else
             {
                 printf("\t\t\tCPU(%d) PROCESS TASK\n", cpu_id);
-                /* sleep */
+                /* sleep(1); */
                 /* sim-log */
                 pthread_mutex_lock(&cpu_lock);
                 /* total_turnaround_time += service time + cpu_burst */
@@ -124,6 +127,8 @@ void* task(void* shared_data)
                 break;
             }
 
+            printf("TASK() END-OF-ENTRY SECTION\n");
+
             pthread_mutex_lock(&queue_lock);
 
             printf("\tTASK() CRITICAL SECTION\n");
@@ -159,13 +164,13 @@ void* task(void* shared_data)
             /* add jobs while there are still jobs left, and buffer isn't full */
         }while(((*ready_queue)->jobs_left > 0) && ((*ready_queue)->size) < ((*ready_queue)->max_size));
 
-        printf("\t\t\tTASK() EXIT JOB LOOP\n");
+        printf("\t\t\tTASK() EXIT JOB LOOP NUM_TASKS: %d\n", num_tasks);
         pthread_cond_signal(&tasks);
         printf("\t\t\tTASK() SIGNAL TASKS COND\n");
         /* spinlock */
         printf("\t\t\t\tTASK() ENTER SPINLOCK\n");
         while(pthread_cond_wait(&no_tasks, &queue_lock)) {/*no-op*/}
-        printf("\t\t\t\t\tTASK() EXIT SPINLOCK\n");
+        printf("\n\t\t\t\t\tTASK() EXIT SPINLOCK\n\n");
 
     }while(TRUE);
 

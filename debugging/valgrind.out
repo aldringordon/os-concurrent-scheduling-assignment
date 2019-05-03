@@ -1,0 +1,189 @@
+==10597== ---Thread-Announcement------------------------------------------
+==10597== 
+==10597== Thread #2 was created
+==10597==    at 0x518287E: clone (clone.S:71)
+==10597==    by 0x4E49EC4: create_thread (createthread.c:100)
+==10597==    by 0x4E49EC4: pthread_create@@GLIBC_2.2.5 (pthread_create.c:797)
+==10597==    by 0x4C36A27: ??? (in /usr/lib/valgrind/vgpreload_helgrind-amd64-linux.so)
+==10597==    by 0x10925C: main (in /home/aldrin/multi-processor-scheduling-simulation/src_code/scheduler)
+==10597== 
+==10597== ----------------------------------------------------------------
+==10597== 
+==10597== Thread #2: pthread_cond_{timed}wait called with un-held mutex
+==10597==    at 0x4C36CD5: ??? (in /usr/lib/valgrind/vgpreload_helgrind-amd64-linux.so)
+==10597==    by 0x10903F: task (in /home/aldrin/multi-processor-scheduling-simulation/src_code/scheduler)
+==10597==    by 0x4C36C26: ??? (in /usr/lib/valgrind/vgpreload_helgrind-amd64-linux.so)
+==10597==    by 0x4E496DA: start_thread (pthread_create.c:463)
+==10597==    by 0x518288E: clone (clone.S:95)
+==10597== 
+==10597== ---Thread-Announcement------------------------------------------
+==10597== 
+==10597== Thread #4 was created
+==10597==    at 0x518287E: clone (clone.S:71)
+==10597==    by 0x4E49EC4: create_thread (createthread.c:100)
+==10597==    by 0x4E49EC4: pthread_create@@GLIBC_2.2.5 (pthread_create.c:797)
+==10597==    by 0x4C36A27: ??? (in /usr/lib/valgrind/vgpreload_helgrind-amd64-linux.so)
+==10597==    by 0x1092D9: main (in /home/aldrin/multi-processor-scheduling-simulation/src_code/scheduler)
+==10597== 
+==10597== ---Thread-Announcement------------------------------------------
+==10597== 
+==10597== Thread #1 is the program's root thread
+==10597== 
+==10597== ----------------------------------------------------------------
+==10597== 
+==10597== Possible data race during write of size 1 at 0x545204B by thread #4
+==10597== Locks held: none
+==10597==    at 0x4C3C546: mempcpy (in /usr/lib/valgrind/vgpreload_helgrind-amd64-linux.so)
+==10597==    by 0x50EC993: _IO_file_xsputn@@GLIBC_2.2.5 (fileops.c:1258)
+==10597==    by 0x50BC533: vfprintf (vfprintf.c:1328)
+==10597==    by 0x50C5F25: printf (printf.c:33)
+==10597==    by 0x108D53: cpu (in /home/aldrin/multi-processor-scheduling-simulation/src_code/scheduler)
+==10597==    by 0x4C36C26: ??? (in /usr/lib/valgrind/vgpreload_helgrind-amd64-linux.so)
+==10597==    by 0x4E496DA: start_thread (pthread_create.c:463)
+==10597==    by 0x518288E: clone (clone.S:95)
+==10597== 
+==10597== This conflicts with a previous write of size 1 by thread #2
+==10597== Locks held: none
+==10597==    at 0x4C3C546: mempcpy (in /usr/lib/valgrind/vgpreload_helgrind-amd64-linux.so)
+==10597==    by 0x50EC993: _IO_file_xsputn@@GLIBC_2.2.5 (fileops.c:1258)
+==10597==    by 0x50E1A8E: puts (ioputs.c:40)
+==10597==    by 0x10901F: task (in /home/aldrin/multi-processor-scheduling-simulation/src_code/scheduler)
+==10597==    by 0x4C36C26: ??? (in /usr/lib/valgrind/vgpreload_helgrind-amd64-linux.so)
+==10597==    by 0x4E496DA: start_thread (pthread_create.c:463)
+==10597==    by 0x518288E: clone (clone.S:95)
+==10597==  Address 0x545204b is 11 bytes inside a block of size 1,024 alloc'd
+==10597==    at 0x4C30F2F: malloc (in /usr/lib/valgrind/vgpreload_helgrind-amd64-linux.so)
+==10597==    by 0x50DF18B: _IO_file_doallocate (filedoalloc.c:101)
+==10597==    by 0x50EF378: _IO_doallocbuf (genops.c:365)
+==10597==    by 0x50EE497: _IO_file_overflow@@GLIBC_2.2.5 (fileops.c:759)
+==10597==    by 0x50EC9EC: _IO_file_xsputn@@GLIBC_2.2.5 (fileops.c:1266)
+==10597==    by 0x50BC533: vfprintf (vfprintf.c:1328)
+==10597==    by 0x50C5F25: printf (printf.c:33)
+==10597==    by 0x109140: main (in /home/aldrin/multi-processor-scheduling-simulation/src_code/scheduler)
+==10597==  Block was alloc'd by thread #1
+==10597== 
+==10597== ----------------------------------------------------------------
+==10597== 
+==10597== Possible data race during write of size 1 at 0x545204C by thread #4
+==10597== Locks held: none
+==10597==    at 0x4C3C56C: mempcpy (in /usr/lib/valgrind/vgpreload_helgrind-amd64-linux.so)
+==10597==    by 0x50EC993: _IO_file_xsputn@@GLIBC_2.2.5 (fileops.c:1258)
+==10597==    by 0x50BDC01: vfprintf (vfprintf.c:1642)
+==10597==    by 0x50C5F25: printf (printf.c:33)
+==10597==    by 0x108D53: cpu (in /home/aldrin/multi-processor-scheduling-simulation/src_code/scheduler)
+==10597==    by 0x4C36C26: ??? (in /usr/lib/valgrind/vgpreload_helgrind-amd64-linux.so)
+==10597==    by 0x4E496DA: start_thread (pthread_create.c:463)
+==10597==    by 0x518288E: clone (clone.S:95)
+==10597== 
+==10597== This conflicts with a previous write of size 1 by thread #2
+==10597== Locks held: none
+==10597==    at 0x4C3C546: mempcpy (in /usr/lib/valgrind/vgpreload_helgrind-amd64-linux.so)
+==10597==    by 0x50EC993: _IO_file_xsputn@@GLIBC_2.2.5 (fileops.c:1258)
+==10597==    by 0x50E1A8E: puts (ioputs.c:40)
+==10597==    by 0x10901F: task (in /home/aldrin/multi-processor-scheduling-simulation/src_code/scheduler)
+==10597==    by 0x4C36C26: ??? (in /usr/lib/valgrind/vgpreload_helgrind-amd64-linux.so)
+==10597==    by 0x4E496DA: start_thread (pthread_create.c:463)
+==10597==    by 0x518288E: clone (clone.S:95)
+==10597==  Address 0x545204c is 12 bytes inside a block of size 1,024 alloc'd
+==10597==    at 0x4C30F2F: malloc (in /usr/lib/valgrind/vgpreload_helgrind-amd64-linux.so)
+==10597==    by 0x50DF18B: _IO_file_doallocate (filedoalloc.c:101)
+==10597==    by 0x50EF378: _IO_doallocbuf (genops.c:365)
+==10597==    by 0x50EE497: _IO_file_overflow@@GLIBC_2.2.5 (fileops.c:759)
+==10597==    by 0x50EC9EC: _IO_file_xsputn@@GLIBC_2.2.5 (fileops.c:1266)
+==10597==    by 0x50BC533: vfprintf (vfprintf.c:1328)
+==10597==    by 0x50C5F25: printf (printf.c:33)
+==10597==    by 0x109140: main (in /home/aldrin/multi-processor-scheduling-simulation/src_code/scheduler)
+==10597==  Block was alloc'd by thread #1
+==10597== 
+==10597== ----------------------------------------------------------------
+==10597== 
+==10597== Possible data race during write of size 1 at 0x545204E by thread #4
+==10597== Locks held: none
+==10597==    at 0x4C3C546: mempcpy (in /usr/lib/valgrind/vgpreload_helgrind-amd64-linux.so)
+==10597==    by 0x50EC993: _IO_file_xsputn@@GLIBC_2.2.5 (fileops.c:1258)
+==10597==    by 0x50BC9A9: vfprintf (vfprintf.c:1674)
+==10597==    by 0x50C5F25: printf (printf.c:33)
+==10597==    by 0x108D53: cpu (in /home/aldrin/multi-processor-scheduling-simulation/src_code/scheduler)
+==10597==    by 0x4C36C26: ??? (in /usr/lib/valgrind/vgpreload_helgrind-amd64-linux.so)
+==10597==    by 0x4E496DA: start_thread (pthread_create.c:463)
+==10597==    by 0x518288E: clone (clone.S:95)
+==10597== 
+==10597== This conflicts with a previous write of size 1 by thread #2
+==10597== Locks held: none
+==10597==    at 0x4C3C546: mempcpy (in /usr/lib/valgrind/vgpreload_helgrind-amd64-linux.so)
+==10597==    by 0x50EC993: _IO_file_xsputn@@GLIBC_2.2.5 (fileops.c:1258)
+==10597==    by 0x50E1A8E: puts (ioputs.c:40)
+==10597==    by 0x10901F: task (in /home/aldrin/multi-processor-scheduling-simulation/src_code/scheduler)
+==10597==    by 0x4C36C26: ??? (in /usr/lib/valgrind/vgpreload_helgrind-amd64-linux.so)
+==10597==    by 0x4E496DA: start_thread (pthread_create.c:463)
+==10597==    by 0x518288E: clone (clone.S:95)
+==10597==  Address 0x545204e is 14 bytes inside a block of size 1,024 alloc'd
+==10597==    at 0x4C30F2F: malloc (in /usr/lib/valgrind/vgpreload_helgrind-amd64-linux.so)
+==10597==    by 0x50DF18B: _IO_file_doallocate (filedoalloc.c:101)
+==10597==    by 0x50EF378: _IO_doallocbuf (genops.c:365)
+==10597==    by 0x50EE497: _IO_file_overflow@@GLIBC_2.2.5 (fileops.c:759)
+==10597==    by 0x50EC9EC: _IO_file_xsputn@@GLIBC_2.2.5 (fileops.c:1266)
+==10597==    by 0x50BC533: vfprintf (vfprintf.c:1328)
+==10597==    by 0x50C5F25: printf (printf.c:33)
+==10597==    by 0x109140: main (in /home/aldrin/multi-processor-scheduling-simulation/src_code/scheduler)
+==10597==  Block was alloc'd by thread #1
+==10597== 
+call to CPU(2)
+==10597== ----------------------------------------------------------------
+==10597== 
+==10597== Thread #4: pthread_cond_{timed}wait called with un-held mutex
+==10597==    at 0x4C36CD5: ??? (in /usr/lib/valgrind/vgpreload_helgrind-amd64-linux.so)
+==10597==    by 0x108D67: cpu (in /home/aldrin/multi-processor-scheduling-simulation/src_code/scheduler)
+==10597==    by 0x4C36C26: ??? (in /usr/lib/valgrind/vgpreload_helgrind-amd64-linux.so)
+==10597==    by 0x4E496DA: start_thread (pthread_create.c:463)
+==10597==    by 0x518288E: clone (clone.S:95)
+==10597== 
+call to CPU(1)
+==10597== ---Thread-Announcement------------------------------------------
+==10597== 
+==10597== Thread #3 was created
+==10597==    at 0x518287E: clone (clone.S:71)
+==10597==    by 0x4E49EC4: create_thread (createthread.c:100)
+==10597==    by 0x4E49EC4: pthread_create@@GLIBC_2.2.5 (pthread_create.c:797)
+==10597==    by 0x4C36A27: ??? (in /usr/lib/valgrind/vgpreload_helgrind-amd64-linux.so)
+==10597==    by 0x1092D9: main (in /home/aldrin/multi-processor-scheduling-simulation/src_code/scheduler)
+==10597== 
+==10597== ----------------------------------------------------------------
+==10597== 
+==10597== Thread #3: pthread_cond_{timed}wait called with un-held mutex
+==10597==    at 0x4C36CD5: ??? (in /usr/lib/valgrind/vgpreload_helgrind-amd64-linux.so)
+==10597==    by 0x108D67: cpu (in /home/aldrin/multi-processor-scheduling-simulation/src_code/scheduler)
+==10597==    by 0x4C36C26: ??? (in /usr/lib/valgrind/vgpreload_helgrind-amd64-linux.so)
+==10597==    by 0x4E496DA: start_thread (pthread_create.c:463)
+==10597==    by 0x518288E: clone (clone.S:95)
+==10597== 
+call to CPU(3)
+==10597== ---Thread-Announcement------------------------------------------
+==10597== 
+==10597== Thread #5 was created
+==10597==    at 0x518287E: clone (clone.S:71)
+==10597==    by 0x4E49EC4: create_thread (createthread.c:100)
+==10597==    by 0x4E49EC4: pthread_create@@GLIBC_2.2.5 (pthread_create.c:797)
+==10597==    by 0x4C36A27: ??? (in /usr/lib/valgrind/vgpreload_helgrind-amd64-linux.so)
+==10597==    by 0x1092D9: main (in /home/aldrin/multi-processor-scheduling-simulation/src_code/scheduler)
+==10597== 
+==10597== ----------------------------------------------------------------
+==10597== 
+==10597== Thread #5: pthread_cond_{timed}wait called with un-held mutex
+==10597==    at 0x4C36CD5: ??? (in /usr/lib/valgrind/vgpreload_helgrind-amd64-linux.so)
+==10597==    by 0x108D67: cpu (in /home/aldrin/multi-processor-scheduling-simulation/src_code/scheduler)
+==10597==    by 0x4C36C26: ??? (in /usr/lib/valgrind/vgpreload_helgrind-amd64-linux.so)
+==10597==    by 0x4E496DA: start_thread (pthread_create.c:463)
+==10597==    by 0x518288E: clone (clone.S:95)
+==10597== 
+^C==10597== 
+==10597== Process terminating with default action of signal 2 (SIGINT)
+==10597==    at 0x4E4AD2D: __pthread_timedjoin_ex (pthread_join_common.c:89)
+==10597==    by 0x4C33C65: ??? (in /usr/lib/valgrind/vgpreload_helgrind-amd64-linux.so)
+==10597==    by 0x10934D: main (in /home/aldrin/multi-processor-scheduling-simulation/src_code/scheduler)
+==10597== 
+==10597== For counts of detected and suppressed errors, rerun with: -v
+==10597== Use --history-level=approx or =none to gain increased speed, at
+==10597== the cost of reduced accuracy of conflicting-access information
+==10597== ERROR SUMMARY: 49 errors from 7 contexts (suppressed: 101 from 42)
+
