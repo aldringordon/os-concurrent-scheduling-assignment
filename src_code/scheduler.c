@@ -65,12 +65,23 @@ void* cpu(void* shared_data)
 
         task = getTask(ready_queue);
 
+        pthread_mutex_unlock(&queue_lock);
+
         if(task == NULL)
         {
             pthread_cond_signal(&no_tasks);
         }
-        pthread_mutex_unlock(&queue_lock);
+        else
+        {
+            /* sleep */
+            /* sim-log */
+        }
 
+        pthread_mutex_lock(&cpu_lock);
+
+
+
+        pthread_mutex_unlock(&cpu_lock);
 
     }while(TRUE);
 
@@ -84,45 +95,51 @@ void* cpu(void* shared_data)
 void* task(void* shared_data)
 {
     Task *task1, *task2;
+    BOOLEAN t1_arr, t2_arr;
     Data* data = (Data*)shared_data;
     ReadyQueue** ready_queue = data->queue;
-    printf("call to task(%d)\n", data->thread_id);
+    t1_arr = FALSE;
+    t2_arr = FALSE;
 
+    printf("call to task(%d)\n", data->thread_id);
     printf("TASK() ready_queue jobs_left: %d\n", (*ready_queue)->jobs_left);
     do
     {
-        task1 = getJob(&job_queue);
-        if(task1 != NULL)
+        do
         {
-            /* sim_log */
-        }
+            task1 = getJob(&job_queue);
+            task2 = getJob(&job_queue);
 
-        task2 = getJob(&job_queue);
-        if(task2 != NULL)
-        {
-            /* sim_log */
-        }
+            if(task1 == NULL && task2 == NULL)
+            {
+                break;
+            }
 
-        if(task1 == NULL && task2 == NULL)
-        {
-            break;
-        }
+            pthread_mutex_lock(&queue_lock);
 
-        pthread_mutex_lock(&queue_lock);
-        if(addTask(ready_queue, task1) == TRUE)
-        {
-            /* sim_log */
-        }
+            t1_arr = addTask(ready_queue, task1);
+            /* t1_arr_time */
 
-        if(addTask(ready_queue, task2) == TRUE)
-        {
-            /* sim_log */
-        }
-        pthread_mutex_unlock(&queue_lock);
+            t2_arr = addTask(ready_queue, task2);
+            /* t2_arr_time */
 
-        pthread_cond_signal(&tasks);
+            pthread_mutex_unlock(&queue_lock);
 
-        while(pthread_cond_wait(&no_tasks)) {/*no-op*/}
+            if(t1_arr == TRUE)
+            {
+                /* sim_log */
+            }
+            if(t2_arr == TRUE)
+            {
+                /* sim_log */
+            }
+
+        /* add jobs while there are still jobs left, and buffer isn't full */
+    }while(((*ready_queue)->jobs_left > 0) && ((*ready_queue)->size) < ((*ready_queue)->max_size));
+
+    pthread_cond_signal(&tasks);
+
+    while(pthread_cond_wait(&no_tasks)) {/*no-op*/}
 
     }while(TRUE);
 

@@ -5,8 +5,9 @@
  * Purpose: contains TRUE & FALSE constants
  */
 #ifndef BOOLEAN_H
-#define BOOLEAN
+#define BOOLEAN_H
 
+#define BOOLEAN int
 #define TRUE 1
 #define FALSE 0
 
