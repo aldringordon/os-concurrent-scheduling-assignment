@@ -57,7 +57,7 @@ void createReadyQueue(ReadyQueue** queue, int size, int jobs)
 int addTask(ReadyQueue** queue, Task* task)
 {
     /* if number of tasks < capacity */
-    if((*queue)->size < (*queue)->max_size && task != NULL)
+    if(((*queue)->size < (*queue)->max_size) && task != NULL)
     {
         ReadyQueueNode* newNode;
         Task* newTask;
