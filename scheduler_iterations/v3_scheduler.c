@@ -43,7 +43,6 @@ pthread_mutex_t queue_lock;
 pthread_mutex_t cpu_lock;
 
 pthread_cond_t tasks;
-pthread_cond_t empty;
 
 /* job pool */
 JobQueue* job_queue;
@@ -66,45 +65,23 @@ void* cpu(void* shared_data)
 
     do
     {
+        while((*ready_queue)->size == 0) { /* wait for tasks */}
 
-        /* CPU waits for tasks */
-
-        printf("\t\t\t\t\tcpu(%d) - lock\n", cpu_id);
         pthread_mutex_lock(&queue_lock);
-
-        if((*ready_queue)->size == 0 && (*ready_queue)->jobs_left != 0)
-        {
-            printf("\t\t\t\t\tcpu(%d) - wait tasks\n", cpu_id);
-            pthread_cond_wait(&tasks, &queue_lock);
-        }
-
-        do
-        {
-            task = getTask(ready_queue);
-            pthread_mutex_unlock(&queue_lock);
-
-            if(task != NULL)
-            {
-                printf("\tcpu(%d): processing: task#:%d burst_time:%d\n", cpu_id, task->n, task->burst);
-                sleep(task->burst/20);
-                num_processed++;
-                printf("\t\tcpu(%d): processed: task#:%d burst_time:%d execution_time: %d\n", cpu_id, task->n, task->burst, task->burst/20);
-                /* sim-log */
-                pthread_mutex_lock(&cpu_lock);
-                /* total_turnaround_time += service time + cpu_burst */
-                pthread_mutex_unlock(&cpu_lock);
-                free(task);
-            }
-            pthread_mutex_lock(&queue_lock);
-        }while((*ready_queue)->size != 0);
-
-        /* CPU signals TASK that queue is empty */
-
+        task = getTask(ready_queue);
         pthread_mutex_unlock(&queue_lock);
-        printf("\t\t\t\t\tcpu(%d) - signal empty\n", cpu_id);
-        pthread_cond_signal(&empty);
 
-
+        if(task != NULL)
+        {
+            printf("\tcpu(%d): processing: task#:%d burst_time:%d\n", cpu_id, task->n, task->burst);
+            sleep(task->burst/20);
+            num_processed++;
+            printf("\t\tcpu(%d): processed: task#:%d burst_time:%d execution_time: %d\n", cpu_id, task->n, task->burst, task->burst/20);
+            /* sim-log */
+            pthread_mutex_lock(&cpu_lock);
+            /* total_turnaround_time += service time + cpu_burst */
+            pthread_mutex_unlock(&cpu_lock);
+        }
 
     }while((*ready_queue)->jobs_left != 0);
 
@@ -130,19 +107,8 @@ void* task(void* shared_data)
 
     do
     {
-        /* TASK blocks when ready_queue has been
-        filled with the amount of tasks available to be
-        put into the buffer */
 
-
-        printf("\t\t\t\t\tTASK() - lock\n");
         pthread_mutex_lock(&queue_lock);
-
-        if((*ready_queue)->size != 0 && (*ready_queue)->jobs_left != 0)
-        {
-            printf("\t\t\t\t\tTASK() - wait empty\n");
-            pthread_cond_wait(&empty, &queue_lock);
-        }
 
         /* add jobs while there are still jobs left, and buffer isn't full
         and stop adding jobs if task1 = null or task 2 = null (no more jobs)*/
@@ -155,7 +121,6 @@ void* task(void* shared_data)
             /* t1_arr_time */
             if(t1_arr == TRUE)
             {
-                printf("job1 added\n");
                 /* sim_log */
                 pthread_mutex_lock(&cpu_lock);
                 num_tasks++;
@@ -173,7 +138,6 @@ void* task(void* shared_data)
                 /* t2_arr_time */
                 if(t2_arr == TRUE)
                 {
-                    printf("job2 added\n");
                     /* sim_log */
                     pthread_mutex_lock(&cpu_lock);
                     num_tasks++;
@@ -182,20 +146,14 @@ void* task(void* shared_data)
             }
         }while((((*ready_queue)->jobs_left > 0) && ((*ready_queue)->size) < ((*ready_queue)->max_size)) && ((task1 != NULL) && (task2 != NULL)));
 
-        /* TASK signals CPU that jobs to be
-        processed have been added to the queue
-        and is no longer empty */
-
         pthread_mutex_unlock(&queue_lock);
-        printf("\t\t\t\t\tTASK() - signal tasks\n");
-        pthread_cond_signal(&tasks);
 
         /* output arrival time */
 
-    }while((*ready_queue)->jobs_left != 0);
+        while((*ready_queue)->size != 0) { /* wait for tasks to be processed */ }
 
-    /* signal any cpu still waiting to finish */
-    pthread_cond_signal(&tasks);
+
+    }while((*ready_queue)->jobs_left != 0);
 
     printf("\nTHREAD TERMINATION: task()\n\n");
 
@@ -226,7 +184,6 @@ int main(int argc, char* argv[])
 
     /* initialize condition variables */
     pthread_cond_init(&tasks, NULL);
-    pthread_cond_init(&empty, NULL);
 
     if(argc < 3)
     {
@@ -292,7 +249,6 @@ int main(int argc, char* argv[])
         pthread_mutex_destroy(&queue_lock);
         pthread_mutex_destroy(&cpu_lock);
         pthread_cond_destroy(&tasks);
-        pthread_cond_destroy(&empty);
         free(job_queue);
         free(ready_queue);
     }
