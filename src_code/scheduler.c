@@ -42,8 +42,8 @@ int total_turnaround_time;
 pthread_mutex_t queue_lock;
 pthread_mutex_t cpu_lock;
 
-pthread_cond_t no_tasks;
 pthread_cond_t tasks;
+pthread_cond_t no_tasks;
 
 /* job pool */
 JobQueue* job_queue;
@@ -59,40 +59,40 @@ void* cpu(void* shared_data)
     Data* data = (Data*)shared_data;
     int cpu_id = data->thread_id;
     ReadyQueue** ready_queue = data->queue;
-    printf("call to CPU(%d)\n", data->thread_id);
+
+    printf("\ncpu(%d) thread created\n", cpu_id);
 
     do
     {
-        while(pthread_cond_wait(&tasks, &queue_lock)) {/*no-op*/}
+        while((*ready_queue)->size == 0) {printf("\tcpu(%d) spinlock\n", cpu_id); sleep(1);}
 
-        do
+        printf("\tcpu(%d) ENTRY section\n", cpu_id);
+
+        pthread_mutex_lock(&queue_lock);
+
+        printf("\tcpu(%d) CRITICAL section\n", cpu_id);
+
+        task = getTask(ready_queue);
+
+        pthread_mutex_unlock(&queue_lock);
+
+printf("\tcpu(%d) REMAINDER section\n\t\ttask#: %d burst_time: %d\n", cpu_id,task->n, task->burst);
+        if(task != NULL)
         {
-            printf("CPU(%d) EXIT SPINLOCK ENTRY SECTION\n", cpu_id);
+            sleep(1);
+            /* sim-log */
+            pthread_mutex_lock(&cpu_lock);
+            /* total_turnaround_time += service time + cpu_burst */
+            pthread_mutex_unlock(&cpu_lock);
+        }
 
-            pthread_mutex_lock(&queue_lock); /* arrival of tasks */
-            printf("\tCPU(%d) CRITICAL SECTION\n", cpu_id);
-            task = getTask(ready_queue);
-            pthread_mutex_unlock(&queue_lock);
+        if((*ready_queue)->size == 0)
+        {
+            printf("\tcpu(%d) signal NO TASKS\n", cpu_id);
+            pthread_cond_signal(&no_tasks);
+        }
 
-            printf("\t\tCPU(%d) REMAINDER SECTION\n", cpu_id);
-            if(task == NULL)
-            {
-                printf("\t\t\tCPU(%d) NULL TASK\n", cpu_id);
-                pthread_cond_signal(&no_tasks);
-            }
-            else
-            {
-                printf("\t\t\tCPU(%d) PROCESS TASK\n", cpu_id);
-                /* sleep(1); */
-                /* sim-log */
-                pthread_mutex_lock(&cpu_lock);
-                /* total_turnaround_time += service time + cpu_burst */
-                pthread_mutex_unlock(&cpu_lock);
-            }
-        }while(task != NULL);
-        printf("\t\t\t\tCPU(%d) EXIT TASK LOOP\n", cpu_id);
-
-    }while(TRUE);
+    }while((*ready_queue)->jobs_left != 0);
 
     pthread_exit(NULL);
 }
@@ -110,41 +110,26 @@ void* task(void* shared_data)
     t1_arr = FALSE;
     t2_arr = FALSE;
 
-    printf("call to task(%d)\n", data->thread_id);
-    printf("TASK() ready_queue jobs_left: %d\n", (*ready_queue)->jobs_left);
+    printf("\ntask() thread created\n");
+
     do
     {
+        printf("\t\t\t\ttask() entry section\n");
+
+        pthread_mutex_lock(&queue_lock);
+        printf("\t\t\t\ttask() critical section\n");
+        /* add jobs while there are still jobs left, and buffer isn't full
+        and stop adding jobs if task1 = null or task 2 = null (no more jobs)*/
         do
         {
-            printf("TASK() ENTRY SECTION\n");
-
             task1 = getJob(&job_queue);
             task2 = getJob(&job_queue);
-
-            if(task1 == NULL && task2 == NULL)
-            {
-                printf("\t\t\t\t\tTASK() EXIT PROCESS\n");
-                break;
-            }
-
-            printf("TASK() END-OF-ENTRY SECTION\n");
-
-            pthread_mutex_lock(&queue_lock);
-
-            printf("\tTASK() CRITICAL SECTION\n");
 
             t1_arr = addTask(ready_queue, task1);
             /* t1_arr_time */
 
             t2_arr = addTask(ready_queue, task2);
             /* t2_arr_time */
-
-            pthread_mutex_unlock(&queue_lock);
-
-
-
-
-            printf("\t\tTASK() REMAINDER SECTION\n");
 
             if(t1_arr == TRUE)
             {
@@ -161,18 +146,18 @@ void* task(void* shared_data)
                 pthread_mutex_unlock(&cpu_lock);
             }
 
-            /* add jobs while there are still jobs left, and buffer isn't full */
-        }while(((*ready_queue)->jobs_left > 0) && ((*ready_queue)->size) < ((*ready_queue)->max_size));
+            printf("\t\t\t\ttask() job added\n\t\t\t\tjobs_left: %d ready_queue: %d max_size: %d\n", (*ready_queue)->jobs_left, (*ready_queue)->size, (*ready_queue)->max_size);
+            sleep(1);
+        }while((((*ready_queue)->jobs_left > 0) && ((*ready_queue)->size) < ((*ready_queue)->max_size)) && ((task1 != NULL) && (task2 != NULL)));
 
-        printf("\t\t\tTASK() EXIT JOB LOOP NUM_TASKS: %d\n", num_tasks);
-        pthread_cond_signal(&tasks);
-        printf("\t\t\tTASK() SIGNAL TASKS COND\n");
-        /* spinlock */
-        printf("\t\t\t\tTASK() ENTER SPINLOCK\n");
-        while(pthread_cond_wait(&no_tasks, &queue_lock)) {/*no-op*/}
-        printf("\n\t\t\t\t\tTASK() EXIT SPINLOCK\n\n");
+        pthread_mutex_unlock(&queue_lock);
 
-    }while(TRUE);
+        printf("\t\t\t\ttask() remainder section\n\t\t\t\tjobs in queue: %d\n", (*ready_queue)->size);
+        /* output arrival time */
+
+        while((*ready_queue)->size != 0) {printf("\t\t\t\t\t\ttask() spinlock\n"); sleep(2); }
+
+    }while((*ready_queue)->jobs_left != 0);
 
     pthread_exit(NULL);
 }
@@ -213,24 +198,19 @@ int main(int argc, char* argv[])
         m = atoi(argv[2]);
         filename = argv[1];
 
-        printf("Ready-Queue Size: %d\n", m);
-        printf("task_file filename: %s\n", filename);
-
         /* create a simulation_log */
         system("rm -rf simulation_log");
         system("echo SIMULATION LOG >> simulation_log");
 
         /* create Job-Queue*/
-        printf("Initializing Job-Queue\n");
         createJobQueue(&job_queue);
         readJobs(&job_queue, filename);
 
         /* create Ready-Queue */
-        printf("Initializing Ready-Queue\n");
         createReadyQueue(&ready_queue, m, job_queue->size);
 
         /* create 4 threads: 1 for task, 3 for cpus */
-        printf("Generating threads\n");
+        printf("\nGenerating threads . . .\n\n");
         for(i = 0; i < NUM_THREADS; i++) /* Reference #5 */
         {
             thread_data[i].thread_id = i;
@@ -261,6 +241,7 @@ int main(int argc, char* argv[])
             pthread_join(threads[i], NULL);
         }
         printf("Joined threads\n");
+        printf("num_tasks: %d\n", num_tasks);
 
         /* cleanup */
         pthread_mutex_destroy(&queue_lock);
