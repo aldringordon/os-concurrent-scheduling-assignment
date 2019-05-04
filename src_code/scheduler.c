@@ -147,6 +147,7 @@ void* task(void* shared_data)
         }while((((*ready_queue)->jobs_left > 0) && ((*ready_queue)->size) < ((*ready_queue)->max_size)) && ((task1 != NULL) && (task2 != NULL)));
 
         pthread_mutex_unlock(&queue_lock);
+
         /* output arrival time */
 
         while((*ready_queue)->size != 0) { /* wait for tasks to be processed */ }
