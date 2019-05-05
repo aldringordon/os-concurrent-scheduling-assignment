@@ -30,6 +30,7 @@
 #include "ready_queue.h"
 #include "data.h"
 #include "boolean.h"
+#include "io.h"
 
 #define NUM_THREADS 4 /* task, CPU-1, CPU-2, CPU-3 */
 
@@ -46,6 +47,10 @@ pthread_mutex_t cpu_lock;
 pthread_cond_t tasks;
 pthread_cond_t empty;
 
+/* time structures */
+time_t rawtime;
+struct tm* timeinfo;
+
 /* job pool */
 JobQueue* job_queue;
 
@@ -60,17 +65,22 @@ void* cpu(void* shared_data)
     Data* data = (Data*)shared_data;
     int cpu_id = data->thread_id;
     ReadyQueue** ready_queue = data->queue;
+
     int num_processed = 0;
+
     printf("\nTHREAD CREATION: cpu(%d)\n\n", cpu_id);
 
     do
     {
 
         /* CPU waits for tasks */
+
+        printf("\t\t\t\t\tcpu(%d) - lock\n", cpu_id);
         pthread_mutex_lock(&queue_lock);
 
         if((*ready_queue)->size == 0 && (*ready_queue)->jobs_left != 0)
         {
+            printf("\t\t\t\t\tcpu(%d) - wait tasks\n", cpu_id);
             pthread_cond_wait(&tasks, &queue_lock);
         }
 
@@ -81,23 +91,13 @@ void* cpu(void* shared_data)
 
             if(task != NULL)
             {
-
-                /* SIM LOG */
-
-
                 printf("\tcpu(%d): processing: task#:%d burst_time:%d\n", cpu_id, task->n, task->burst);
-                sleep(task->burst/10);
+                sleep(task->burst/20);
                 num_processed++;
-                printf("\t\tcpu(%d): processed: task#:%d burst_time:%d execution_time: %d\n", cpu_id, task->n, task->burst, task->burst/10);
-
-                /* SIM LOG
-                according to the assignment specification its:
-                completion time = service time + cpu burst*/
-
+                printf("\t\tcpu(%d): processed: task#:%d burst_time:%d execution_time: %d\n", cpu_id, task->n, task->burst, task->burst/20);
+                /* sim-log */
                 pthread_mutex_lock(&cpu_lock);
-                num_tasks++;
-                total_waiting_time += 0; /* waiting time = service time - arrival time */
-                total_turnaround_time += 0; /* turnaround time = completion time - arrival time */
+                /* total_turnaround_time += service time + cpu_burst */
                 pthread_mutex_unlock(&cpu_lock);
                 free(task);
             }
@@ -107,6 +107,7 @@ void* cpu(void* shared_data)
         /* CPU signals TASK that queue is empty */
 
         pthread_mutex_unlock(&queue_lock);
+        printf("\t\t\t\t\tcpu(%d) - signal empty\n", cpu_id);
         pthread_cond_signal(&empty);
 
 
@@ -128,7 +129,6 @@ void* task(void* shared_data)
     BOOLEAN t1_arr, t2_arr;
     Data* data = (Data*)shared_data;
     ReadyQueue** ready_queue = data->queue;
-    int jobs_added = 0;
     t1_arr = FALSE;
     t2_arr = FALSE;
 
@@ -140,16 +140,20 @@ void* task(void* shared_data)
         filled with the amount of tasks available to be
         put into the buffer */
 
+
+        printf("\t\t\t\t\tTASK() - lock\n");
         pthread_mutex_lock(&queue_lock);
 
         if((*ready_queue)->size != 0 && (*ready_queue)->jobs_left != 0)
         {
+            printf("\t\t\t\t\tTASK() - wait empty\n");
             pthread_cond_wait(&empty, &queue_lock);
         }
 
         /* add jobs while there are still jobs left, and buffer isn't full
         and stop adding jobs if task1 = null or task 2 = null (no more jobs)*/
 
+        printf("\ntask() adding jobs\n\n");
         do
         {
             task1 = getJob(&job_queue);
@@ -157,9 +161,11 @@ void* task(void* shared_data)
             /* t1_arr_time */
             if(t1_arr == TRUE)
             {
-                /* SIM LOG */
-
-                jobs_added++;
+                printf("job1 added\n");
+                /* sim_log */
+                pthread_mutex_lock(&cpu_lock);
+                num_tasks++;
+                pthread_mutex_unlock(&cpu_lock);
             }
 
             /* check that 2nd task can fit in queue
@@ -173,9 +179,11 @@ void* task(void* shared_data)
                 /* t2_arr_time */
                 if(t2_arr == TRUE)
                 {
-                    /* SIM LOG */
-                    
-                    jobs_added++;
+                    printf("job2 added\n");
+                    /* sim_log */
+                    pthread_mutex_lock(&cpu_lock);
+                    num_tasks++;
+                    pthread_mutex_unlock(&cpu_lock);
                 }
             }
         }while((((*ready_queue)->jobs_left > 0) && ((*ready_queue)->size) < ((*ready_queue)->max_size)) && ((task1 != NULL) && (task2 != NULL)));
@@ -185,14 +193,15 @@ void* task(void* shared_data)
         and is no longer empty */
 
         pthread_mutex_unlock(&queue_lock);
+        printf("\t\t\t\t\tTASK() - signal tasks\n");
         pthread_cond_signal(&tasks);
+
+        /* output arrival time */
 
     }while((*ready_queue)->jobs_left != 0);
 
     /* signal any cpu still waiting to finish */
     pthread_cond_signal(&tasks);
-
-    /* SIM LOG */
 
     printf("\nTHREAD TERMINATION: task()\n\n");
 
@@ -240,6 +249,10 @@ int main(int argc, char* argv[])
         m = atoi(argv[2]);
         filename = argv[1];
 
+        /* initialize time variables */
+        time(&rawtime);
+        timeinfo = localtime(&rawtime);
+
         /* create a simulation_log */
         system("rm -rf simulation_log");
         system("echo \'multi-processor-scheduling-simulation\nsimulation_log\' >> simulation_log");
@@ -252,6 +265,7 @@ int main(int argc, char* argv[])
         createReadyQueue(&ready_queue, m, job_queue->size);
 
         /* create 4 threads: 1 for task, 3 for cpus */
+        printf("\nGenerating threads . . .\n\n");
         for(i = 0; i < NUM_THREADS; i++) /* Reference #5 */
         {
             thread_data[i].thread_id = i;
