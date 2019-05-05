@@ -30,6 +30,7 @@
 #include "ready_queue.h"
 #include "data.h"
 #include "boolean.h"
+#include "io.h"
 
 #define NUM_THREADS 4 /* task, CPU-1, CPU-2, CPU-3 */
 
@@ -46,7 +47,10 @@ pthread_mutex_t cpu_lock;
 pthread_cond_t tasks;
 pthread_cond_t empty;
 
-/* job pool */
+/* job pool, contains the list of jobs read in from task_file
+implemented as a double ended, singly linked list,
+same implementation as the ready_queue (FIFO)
+found in job_queue.c/.h */
 JobQueue* job_queue;
 
 /**
@@ -56,16 +60,19 @@ JobQueue* job_queue;
  */
 void* cpu(void* shared_data)
 {
-    Task *task = NULL;
-    Data* data = (Data*)shared_data;
-    int cpu_id = data->thread_id;
-    ReadyQueue** ready_queue = data->queue;
-    int num_processed = 0;
+    Task* task = NULL; /* task to be processed */
+    Data* data = (Data*)shared_data; /* convert shared data into accessible adt */
+    int cpu_id = data->thread_id; /* identifies thread with cpu name {1, 2, 3} */
+    ReadyQueue** ready_queue = data->queue; /* buffer */
+    time_t rawtime; /* for getting time */
+    struct tm* time_info; /* converting rawtime into accessible time struc */
+    int num_processed = 0; /* number of tasks this thread has processed */
+
+    /* output to screen thread creation so user can see progress */
     printf("\nTHREAD CREATION: cpu(%d)\n\n", cpu_id);
 
     do
     {
-
         /* CPU waits for tasks */
         pthread_mutex_lock(&queue_lock);
 
@@ -82,23 +89,51 @@ void* cpu(void* shared_data)
             if(task != NULL)
             {
 
-                /* SIM LOG */
+                /* assignment specification 7)
+                output to simulation_log when CPU takes tasl from queue */
+                time(&rawtime);
+                time_info = localtime(&rawtime);
+                task->service_time = *time_info;
+                task_serviced(cpu_id, task->n, &task->arrival_time, &task->service_time);
 
-
+                /* output to screen process execution so user can see progress */
                 printf("\tcpu(%d): processing: task#:%d burst_time:%d\n", cpu_id, task->n, task->burst);
+
+                /* assignment specification 5)
+                simulate the execution of a task for its entire cpu_burst
+                via a sleep call proportional to the burst time
+                used a sleep call with the burst time integer divided by 10
+                so a 43 burst task will take 4 seconds, 89 burst: 8 seconds etc*/
                 sleep(task->burst/10);
                 num_processed++;
+
+                /* output to screen process execution so user can see progress */
                 printf("\t\tcpu(%d): processed: task#:%d burst_time:%d execution_time: %d\n", cpu_id, task->n, task->burst, task->burst/10);
 
-                /* SIM LOG
+                /* assignment specification 8)
+                output to simulation_log when CPU finishes servicing a task
                 according to the assignment specification its:
                 completion time = service time + cpu burst*/
+                task->completion_time = task->arrival_time;
+                task->completion_time.tm_sec += task->burst;
+                mktime(&task->completion_time); /* normalizes the time structure i.e if seconds was 70 = add 1 min take 60 seconds*/
+                task_completed(cpu_id, task->n, &task->arrival_time, &task->completion_time);
 
                 pthread_mutex_lock(&cpu_lock);
                 num_tasks++;
-                total_waiting_time += 0; /* waiting time = service time - arrival time */
-                total_turnaround_time += 0; /* turnaround time = completion time - arrival time */
+                /* difftime returns a double value of the difference between time1 and time 2 both of type "time_t"
+                mktime converts a "struct *tm" into "time_t"
+                next 2 lines converts the "struct *tm" times to be used in calculation and passes
+                them to difftime to calculate the time difference, this is then converted from a
+                double to an int */
+
+                /* waiting time = service time - arrival time */
+                total_waiting_time += (int)(difftime(mktime(&task->service_time), mktime(&task->arrival_time)));
+
+                /* turnaround time = completion time - arrival time */
+                total_turnaround_time += (int)(difftime(mktime(&task->completion_time), mktime(&task->arrival_time)));;
                 pthread_mutex_unlock(&cpu_lock);
+
                 free(task);
             }
             pthread_mutex_lock(&queue_lock);
@@ -109,12 +144,11 @@ void* cpu(void* shared_data)
         pthread_mutex_unlock(&queue_lock);
         pthread_cond_signal(&empty);
 
-
-
     }while((*ready_queue)->jobs_left != 0);
 
-    printf("\nTHREAD TERMINATION: cpu(%d) num_tasks processed: = %d\n", cpu_id, num_processed);
-
+    /* output to screen thread termination so user can see progress */
+    printf("THREAD TERMINATION: cpu(%d) num_tasks processed: = %d\n", cpu_id, num_processed);
+    cpu_terminated(cpu_id, num_processed);
     pthread_exit(NULL);
 }
 
@@ -124,24 +158,20 @@ void* cpu(void* shared_data)
  */
 void* task(void* shared_data)
 {
-    Task *task1, *task2;
-    BOOLEAN t1_arr, t2_arr;
-    Data* data = (Data*)shared_data;
-    ReadyQueue** ready_queue = data->queue;
-    int jobs_added = 0;
-    t1_arr = FALSE;
-    t2_arr = FALSE;
-
+    Task *task1, *task2; /* 2 tasks to be added to Ready-Queue */
+    Data* data = (Data*)shared_data; /* convert shared data into accessible adt */
+    ReadyQueue** ready_queue = data->queue; /* buffer */
+    int jobs_added = 0; /* number of jobs added to buffer */
+    time_t rawtime; /* for getting time */
+    struct tm* time_info; /* converting rawtime into accessible time struc */
+    /* output to screen thread creation so user can see progress */
     printf("\nTHREAD CREATION: task()\n\n");
-
     do
     {
         /* TASK blocks when ready_queue has been
         filled with the amount of tasks available to be
         put into the buffer */
-
         pthread_mutex_lock(&queue_lock);
-
         if((*ready_queue)->size != 0 && (*ready_queue)->jobs_left != 0)
         {
             pthread_cond_wait(&empty, &queue_lock);
@@ -149,16 +179,18 @@ void* task(void* shared_data)
 
         /* add jobs while there are still jobs left, and buffer isn't full
         and stop adding jobs if task1 = null or task 2 = null (no more jobs)*/
-
         do
         {
             task1 = getJob(&job_queue);
-            t1_arr = addTask(ready_queue, task1);
             /* t1_arr_time */
-            if(t1_arr == TRUE)
+            if(task1 != NULL)
             {
                 /* SIM LOG */
-
+                time(&rawtime);
+                time_info = localtime(&rawtime);
+                task1->arrival_time = *time_info;
+                task_placed(task1->n, task1->burst, &task1->arrival_time);
+                addTask(ready_queue, task1);
                 jobs_added++;
             }
 
@@ -169,33 +201,37 @@ void* task(void* shared_data)
             if(((*ready_queue)->size) < ((*ready_queue)->max_size))
             {
                 task2 = getJob(&job_queue);
-                t2_arr = addTask(ready_queue, task2);
                 /* t2_arr_time */
-                if(t2_arr == TRUE)
+                if(task2 != NULL)
                 {
                     /* SIM LOG */
-                    
+                    time(&rawtime);
+                    time_info = localtime(&rawtime);
+                    task2->arrival_time = *time_info;
+                    task_placed(task2->n, task2->burst, &task2->arrival_time);
+                    addTask(ready_queue, task2);
                     jobs_added++;
                 }
             }
+        /* WHILE LOOP IN ENGLISH:
+        while [ (there are still jobs)  AND (the amount of jobs is less then maximum buffer size) ] AND [ both tasks are not NULL ] */
         }while((((*ready_queue)->jobs_left > 0) && ((*ready_queue)->size) < ((*ready_queue)->max_size)) && ((task1 != NULL) && (task2 != NULL)));
 
         /* TASK signals CPU that jobs to be
         processed have been added to the queue
-        and is no longer empty */
-
+        thus no longer empty */
         pthread_mutex_unlock(&queue_lock);
         pthread_cond_signal(&tasks);
-
     }while((*ready_queue)->jobs_left != 0);
 
-    /* signal any cpu still waiting to finish */
+    /* signal any cpu still waiting to finish
+    put this here as without it one of the threads would never
+    unblock and the program would never finish */
     pthread_cond_signal(&tasks);
-
-    /* SIM LOG */
-
+    /* assignment specification 9) termination of task() function */
+    task_terminated(jobs_added); /* io.c */
+    /* output to screen thread termination so user can see progress */
     printf("\nTHREAD TERMINATION: task()\n\n");
-
     pthread_exit(NULL);
 }
 
@@ -204,8 +240,8 @@ int main(int argc, char* argv[])
     /* ./scheduler filename m */
     char* filename; /* argv[1] */
     int m; /* argv[2] */
-
-    int i, rc;
+    int i; /* for loop counter */
+    int rc; /* check return value of pthread_create */
 
     ReadyQueue* ready_queue;
 
@@ -225,12 +261,12 @@ int main(int argc, char* argv[])
     pthread_cond_init(&tasks, NULL);
     pthread_cond_init(&empty, NULL);
 
-    if(argc < 3)
+    if(argc < 3) /* make sure program is called correctly */
     {
         printf("Error - Usage: ./scheduler task_file m\n");
         return EXIT_FAILURE; /* Reference #1 */
     }
-    else if((atoi(argv[2]) < 1) || (atoi(argv[2]) > 10))
+    else if((atoi(argv[2]) < 1) || (atoi(argv[2]) > 10)) /* make sure buffer size is within range */
     {
         printf("Error - m must be a value between 1 and 10\n");
         return EXIT_FAILURE;
@@ -242,7 +278,6 @@ int main(int argc, char* argv[])
 
         /* create a simulation_log */
         system("rm -rf simulation_log");
-        system("echo \'multi-processor-scheduling-simulation\nsimulation_log\' >> simulation_log");
 
         /* create Job-Queue*/
         createJobQueue(&job_queue);
@@ -282,13 +317,25 @@ int main(int argc, char* argv[])
             pthread_join(threads[i], NULL);
         }
 
-        printf("\ntotal num_tasks: %d\n", num_tasks);
+        /* SIM LOG */
+        /* output progress to screen */
+        printf("total tasks: %d\n", num_tasks);
+        printf("total wait time: %d\n", total_waiting_time);
+        printf("total turnaround time: %d\n", total_turnaround_time);
+        printf("\naverage wait time: %d\n", total_waiting_time/num_tasks);
+        printf("average turnaround time: %d\n", total_turnaround_time/num_tasks);
+
+        /* assignment specification 11)
+        write shared information to simulation_log
+        after all CPUs and task threads have terminated */
+        simulation_finished(num_tasks, total_waiting_time/num_tasks, total_turnaround_time/num_tasks); /* io.c */
 
         /* cleanup */
         pthread_mutex_destroy(&queue_lock);
         pthread_mutex_destroy(&cpu_lock);
         pthread_cond_destroy(&tasks);
         pthread_cond_destroy(&empty);
+
         free(job_queue);
         free(ready_queue);
     }

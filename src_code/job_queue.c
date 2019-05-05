@@ -57,7 +57,6 @@ void addJob(JobQueue** queue, Task* job)
         (*queue)->tail->next = newNode; /* point tail.next to new node */
         (*queue)->tail = newNode; /* point tail to new node */
     }
-
     (*queue)->size++;
 }
 

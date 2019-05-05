@@ -14,9 +14,9 @@ typedef struct
 {
     int n; /* task# */
     int burst; /* cpu_burst */
-    struct tm* arrival_time;
-    struct tm* service_time;
-    struct tm* completion_time;
+    struct tm arrival_time;
+    struct tm service_time;
+    struct tm completion_time;
 } Task;
 
 #endif

@@ -16,3 +16,10 @@
 #include "task.h"
 
 #endif
+
+void task_placed(int task_num, int cpu_burst, struct tm* arrival_time);
+void task_serviced(int cpu, int task_num, struct tm* arrival_time, struct tm* service_time);
+void task_completed(int cpu, int task_num, struct tm* arrival_time, struct tm* completion_time);
+void task_terminated(int num_tasks);
+void cpu_terminated(int cpu, int num_tasks);
+void simulation_finished(int num_tasks, int avg_wait, int avg_turnaround);
